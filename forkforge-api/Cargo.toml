@@ -1,0 +1,11 @@
+[package]
+name = "forkforge-api"
+version = "0.1.0"
+
+[dependencies]
+axum = "0.8.4"
+hmac = "0.12.1"
+serde = { version = "1.0.219", features = ["derive"] }
+sha2 = "0.10.9"
+sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio-rustls"] }
+tokio = { version = "1.46.0", features = ["rt", "full"] }

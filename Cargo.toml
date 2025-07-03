@@ -1,0 +1,3 @@
+[workspace]
+members = ["forkforge-cli", "forkforge-api"]
+resolver = "2"
