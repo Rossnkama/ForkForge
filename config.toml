@@ -1,0 +1,11 @@
+[default]
+api_host = "127.0.0.1"
+api_port = 3000
+database_url = "sqlite://forkforge_dev.db"
+api_timeout_seconds = 30
+
+[prod]
+api_host = "0.0.0.0"
+api_port = 8080
+database_url = "postgres://forkforge:password@localhost/forkforge"
+api_timeout_seconds = 60

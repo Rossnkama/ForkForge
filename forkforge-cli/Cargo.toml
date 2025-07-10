@@ -1,5 +1,13 @@
 [package]
 name = "forkforge-cli"
 version = "0.1.0"
+edition = "2024"
+description = "Open-source Rust CLI for creating state-accurate Solana mainnet forks in <10s with account cloning, time-travel snapshots, and integrated debugging"
+authors = ["Ross Nkama <ross@dedsol.xyz>"]
 
 [dependencies]
+clap = { version = "4.5.40", features = ["derive"] }
+forkforge-config = { path = "../forkforge-config" }
+reqwest = { version = "0.12.22", features = ["json"] }
+serde = { workspace = true }
+tokio = { workspace = true }
