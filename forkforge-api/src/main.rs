@@ -7,6 +7,7 @@ use serde::Serialize;
 
 use forkforge_config::Config;
 
+// TODO: We're gonna start validating incoming requests
 #[derive(Serialize)]
 struct ApiResponse<T> {
     data: T,
@@ -46,7 +47,7 @@ async fn main() {
         .route("/billing/webhook", post(stripe_webhook));
 
     let addr = format!("{}:{}", config.api_host, config.api_port);
-    println!("Server listening on... {}", addr);
+    println!("Server listening on... {addr}");
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

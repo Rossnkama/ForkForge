@@ -57,11 +57,11 @@ impl Config {
             .merge(Env::prefixed("FORKFORGE_"))
     }
 
-    pub fn from_profile(profile: &str) -> Result<Self, figment::Error> {
-        Self::figment().select(profile).extract()
+    pub fn from_profile(profile: &str) -> Result<Self, Box<figment::Error>> {
+        Ok(Self::figment().select(profile).extract()?)
     }
 
-    pub fn load() -> Result<Self, figment::Error> {
+    pub fn load() -> Result<Self, Box<figment::Error>> {
         // Try to get profile from env var, default to "default"
         let profile = std::env::var("FORKFORGE_PROFILE").unwrap_or_else(|_| "default".to_string());
         Self::from_profile(&profile)

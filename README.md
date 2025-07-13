@@ -23,8 +23,8 @@ forkforge/
 - **Workspace Structure**: Rust workspace with shared dependencies (tokio, serde, figment)
 - **API Server**: Axum-based REST API for session management, snapshots, and billing
 - **CLI Tool**: Command-line interface for launching forked validators
-- **Configuration Library**: Shared configuration module (forkforge-config) for centralized config management
-- **Configuration**: Currently uses environment variables with plans to integrate figment for hierarchical configuration
+- **Configuration Library**: Shared configuration module (forkforge-config) with figment-based hierarchical configuration
+- **Configuration**: Profile-based configuration via `config.toml` with environment variable overrides
 
 ## Getting Started
 
@@ -56,26 +56,54 @@ cargo run --bin forkforge-cli -- up
 
 ## Configuration
 
-The project uses environment variables for configuration. See `.env.example` for available options:
+The project uses figment for hierarchical configuration supporting both TOML files and environment variables.
+
+### Configuration Profiles
+
+Edit `config.toml` to define configuration profiles:
+
+```toml
+[default]
+api_host = "127.0.0.1"
+api_port = 3000
+database_url = "sqlite://forkforge_dev.db"
+api_timeout_seconds = 30
+
+[prod]
+api_host = "0.0.0.0"
+api_port = 8080
+database_url = "postgres://forkforge:password@localhost/forkforge"
+api_timeout_seconds = 60
+```
 
 ### Environment Variables
 
-- `FORKFORGE_API_HOST` - API server host (default: "127.0.0.1")
-- `FORKFORGE_API_PORT` - API server port (default: 3000)
-- `FORKFORGE_API_BASE_URL` - Full API URL for CLI (default: "<http://127.0.0.1:3000>")
-- `FORKFORGE_DATABASE_URL` - Database connection string (default: "sqlite://forkforge.db")
+All configuration values can be overridden with environment variables:
+
+- `FORKFORGE_PROFILE` - Select configuration profile (default: "default")
+- `FORKFORGE_API_HOST` - API server host
+- `FORKFORGE_API_PORT` - API server port
+- `FORKFORGE_DATABASE_URL` - Database connection string
 - `FORKFORGE_STRIPE_WEBHOOK_SECRET` - Stripe webhook secret for billing
-- `FORKFORGE_API_TIMEOUT_SECONDS` - API request timeout (default: 30)
+- `FORKFORGE_API_TIMEOUT_SECONDS` - API request timeout
 
 ### Setup
 
-1. Copy `.env.example` to `.env`:
+1. Edit `config.toml` to define your configuration profiles
+
+2. Optionally copy `.env.example` to `.env` for environment overrides:
 
    ```bash
    cp .env.example .env
    ```
 
-2. Update the values in `.env` as needed
+3. Set the profile with `FORKFORGE_PROFILE=prod` to use production settings
+
+### Configuration Precedence
+
+1. Default values from code
+2. Profile-specific values from `config.toml`
+3. Environment variables (highest priority)
 
 ## Development
 
@@ -129,8 +157,6 @@ Bruno collection available in `forkforge-bruno/` for testing API endpoints.
 - [ ] Time-travel snapshot system
 - [ ] Complete CLI commands beyond `up`
 - [ ] Integrate forkforge-config library into API and CLI
-- [ ] Migrate from environment variables to figment hierarchical configuration
 - [ ] Stripe webhook validation
 - [ ] ZFS snapshot integration
 - [ ] Kubernetes deployment
-

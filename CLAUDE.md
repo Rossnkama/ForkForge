@@ -98,17 +98,40 @@ forkforge/
 
 ### Current State
 
-The project currently uses environment variables through the `forkforge-config` shared library. The configuration is centralized in a single `Config` struct with `from_env()` and `Default` implementations.
+The project uses figment for hierarchical configuration through the `forkforge-config` shared library. Configuration is managed via:
+
+- A `config.toml` file with profile-based sections (default, prod, etc.)
+- Environment variables with `FORKFORGE_` prefix that override TOML values
+- Profile selection via `FORKFORGE_PROFILE` environment variable
+
+### Configuration Profiles
+
+The project supports multiple configuration profiles defined in `config.toml`:
+
+```toml
+[default]
+api_host = "127.0.0.1"
+api_port = 3000
+database_url = "sqlite://forkforge_dev.db"
+api_timeout_seconds = 30
+
+[prod]
+api_host = "0.0.0.0"
+api_port = 8080
+database_url = "postgres://forkforge:password@localhost/forkforge"
+api_timeout_seconds = 60
+```
 
 ### Environment Variables
 
-All configuration is done through environment variables with `FORKFORGE_` prefix:
+All configuration values can be overridden via environment variables with `FORKFORGE_` prefix:
 
-- `FORKFORGE_API_HOST` - API server host (default: "127.0.0.1")
-- `FORKFORGE_API_PORT` - API server port (default: 3000)
-- `FORKFORGE_DATABASE_URL` - Database connection string (default: "sqlite://forkforge.db")
-- `FORKFORGE_STRIPE_WEBHOOK_SECRET` - Stripe webhook secret (default: empty)
-- `FORKFORGE_API_TIMEOUT_SECONDS` - API request timeout (default: 30)
+- `FORKFORGE_PROFILE` - Select configuration profile (default: "default")
+- `FORKFORGE_API_HOST` - API server host
+- `FORKFORGE_API_PORT` - API server port
+- `FORKFORGE_DATABASE_URL` - Database connection string
+- `FORKFORGE_STRIPE_WEBHOOK_SECRET` - Stripe webhook secret
+- `FORKFORGE_API_TIMEOUT_SECONDS` - API request timeout
 
 ### forkforge-config Library Structure
 
@@ -122,16 +145,24 @@ Config {
 }
 ```
 
+The library provides:
+
+- `Config::figment()` - Returns the Figment configuration builder
+- `Config::from_profile(&str)` - Loads config for a specific profile
+- `Config::load()` - Loads config using FORKFORGE_PROFILE env var
+
 ### Setup Instructions
 
-1. Copy `.env.example` to `.env`
-2. Update values as needed
-3. The `forkforge-config` library will read these on initialization
+1. Copy `.env.example` to `.env` for environment overrides
+2. Edit `config.toml` to define profiles
+3. Set `FORKFORGE_PROFILE=prod` to use production profile
+4. Environment variables override TOML values
 
-### Future Plans
+### Configuration Precedence
 
-- Migration to figment for hierarchical configuration (TOML + env vars)
-- Integration of `forkforge-config` into both API and CLI projects
+1. Default values from `Config::default()`
+2. Profile-specific values from `config.toml`
+3. Environment variables (highest priority)
 
 ## Key APIs
 
@@ -167,10 +198,10 @@ Both projects reference these with `workspace = true`.
 - **Authentication**: Stripe webhook validation implemented (HMAC-SHA256)
 - **State Management**: Future ZFS snapshot integration planned
 - **Performance**: Target <10s fork creation time
-- **Configuration**: Currently using environment variables via `forkforge-config` library, with plans to migrate to figment
+- **Configuration**: Figment-based hierarchical configuration via `forkforge-config` library with profile support
 - **Async Runtime**: Tokio with full features across both projects
 - **Error Handling**: Explicit `Result` types throughout
-- **New Addition**: `forkforge-config` library centralizes configuration across API and CLI (not yet integrated)
+- **Config Library**: `forkforge-config` provides centralized configuration with profile-based TOML files and environment variable overrides
 
 ## TODO Integration
 
@@ -199,17 +230,18 @@ Both projects reference these with `workspace = true`.
 ## Recent Changes
 
 - Added `forkforge-config` library as a new workspace member for centralized configuration
-- Created `.env.example` file with all available environment variables
-- Simplified configuration to use environment variables directly (temporary solution)
-- Workspace still includes figment dependency for future hierarchical configuration
-- Updated CLI description in Cargo.toml to reflect Chainbox functionality
-- Config library provides `from_env()` and `Default` implementations
+- Implemented figment-based hierarchical configuration with profile support
+- Created `config.toml` with default and production profiles
+- Profile selection via `FORKFORGE_PROFILE` environment variable
+- Environment variables (with `FORKFORGE_` prefix) override TOML values
+- Config library provides `figment()`, `from_profile()`, and `load()` methods
 
-## Note on Configuration Status
+## Configuration Implementation Status
 
-The project is in transition:
+The project now has a fully functional configuration system:
 
-- Previously attempted figment integration (references remain in workspace)
-- Currently using simple environment variables via `forkforge-config`
-- API and CLI still have their own configuration code (not yet using shared library)
-- Plan to complete migration to shared config library, then add figment support
+- `forkforge-config` library implements figment for hierarchical configuration
+- Supports profile-based configuration (default, prod, etc.) via `config.toml`
+- Environment variables override TOML values for flexibility
+- API and CLI projects can integrate by using `forkforge_config::Config::load()`
+- Configuration precedence: defaults → TOML profile → environment variables
