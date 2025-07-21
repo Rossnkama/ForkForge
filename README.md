@@ -26,6 +26,8 @@ forkforge/
 - **Configuration Library**: Shared configuration module (forkforge-config) with figment-based hierarchical configuration
 - **Configuration**: Profile-based configuration via `config.toml` with environment variable overrides
 
+### Diagram
+
 ## Getting Started
 
 ### Prerequisites

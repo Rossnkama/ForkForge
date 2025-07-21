@@ -104,22 +104,49 @@ The project uses figment for hierarchical configuration through the `forkforge-c
 - Environment variables with `FORKFORGE_` prefix that override TOML values
 - Profile selection via `FORKFORGE_PROFILE` environment variable
 
+### Configuration File Location
+
+The `config.toml` file is located at the root of the project directory:
+
+```
+forkforge/
+├── config.toml         # Main configuration file
+├── forkforge-api/
+├── forkforge-cli/
+└── ...
+```
+
 ### Configuration Profiles
 
 The project supports multiple configuration profiles defined in `config.toml`:
 
 ```toml
 [default]
+# API Configuration
 api_host = "127.0.0.1"
 api_port = 3000
+api_base_url = "http://127.0.0.1:3000"
 database_url = "sqlite://forkforge_dev.db"
 api_timeout_seconds = 30
 
+# Stripe Configuration
+stripe_publishable_key = "pk_test_..."
+stripe_secret_key = "sk_test_..."
+stripe_product_id_entry_tier = "price_..."
+stripe_product_id_lite_tier = "price_..."
+stripe_product_id_pro_tier = "price_..."
+
+# GitHub OAuth Configuration
+github_client_id = "..."
+github_client_secret = "..."
+
 [prod]
+# Production API settings
 api_host = "0.0.0.0"
 api_port = 8080
 database_url = "postgres://forkforge:password@localhost/forkforge"
 api_timeout_seconds = 60
+# Note: Other configurations (Stripe, GitHub) should be added for production
 ```
 
 ### Environment Variables
@@ -137,11 +164,24 @@ All configuration values can be overridden via environment variables with `FORKF
 
 ```rust
 Config {
+    // API Configuration
     api_host: String,
     api_port: u16,
+    api_base_url: String,
     database_url: String,
-    stripe_webhook_secret: String,
     api_timeout_seconds: u64,
+    
+    // Stripe Configuration
+    stripe_publishable_key: String,
+    stripe_secret_key: String,
+    stripe_webhook_secret: String,
+    stripe_product_id_entry_tier: String,
+    stripe_product_id_lite_tier: String,
+    stripe_product_id_pro_tier: String,
+    
+    // GitHub OAuth Configuration
+    github_client_id: String,
+    github_client_secret: String,
 }
 ```
 

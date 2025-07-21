@@ -6,7 +6,7 @@
 
 #### 0 – 0 : 20  🗒 Write the Flow Doc
 
-* [ ] **`docs/user-flow.md`** — one page, max 20 min.
+* [x] **`docs/user-flow.md`** — one page, max 20 min.
 
   * [x] Sequence diagram: *CLI → API → DB* for authenticated call.
   * [x] Sequence diagram: *Stripe → Webhook → DB → Key issue*.
@@ -17,7 +17,7 @@
 
 #### 0 : 20 – 1 : 20  🗄 Bootstrap Database (SQLite + SQLx)
 
-* [ ] `sqlx migrate add V01__init_schema.sql` with **one file**:
+* [x] `sqlx migrate add V01__init_schema.sql` with **one file**:
 
   ```sql
   CREATE TABLE users (
@@ -37,13 +37,48 @@
   );
   ```
 
-* [ ] `cargo install sqlx-cli` (if not yet).
+* [x] `cargo install sqlx-cli` (if not yet).
 
-* [ ] `sqlx migrate run` — verify both tables exist.
+* [x] `sqlx migrate run` — verify both tables exist.
 
 ---
 
 #### 1 : 20 – 2 : 50  🔑 API-Key Issuance + Auth Middleware
+
+##### **Endpoint A (`fn sign_in_with_github`)**
+
+1. This CLI app will request device & user codes from GitHub.
+
+##### **Endpoint B (`POST /billing/checkout-session`)**
+
+* [ ] Accept JSON `{ "price_id": "<stripe_price_id>" }` (temporary – hard‑code one Price ID in config).
+
+* [ ] `stripe::Client::new(STRIPE_SECRET_KEY)`; call  
+      `CheckoutSession::create` with:
+      *`mode = "payment"` (or `"subscription"` later),
+      * `success_url = "<frontend>?session_id={CHECKOUT_SESSION_ID}"`,
+      *`cancel_url  = "<frontend>/canceled"`,
+      * `line_items = [{ price: price_id, quantity: 1 }]`.
+
+* [ ] Return `201 { "url": "<session.url>" }`.
+
+##### **Endpoint C (`POST /billing/webhook`)**
+
+* [ ] Read raw body, verify `Stripe-Signature` using `STRIPE_WEBHOOK_SECRET`.
+* [ ] Handle **only** `checkout.session.completed`:
+      *[ ] Extract `customer` and `payment_status=="paid"`.
+      * [ ] Upsert `users( stripe_id )` ⇒ get `user_id`.
+      *[ ] Generate API key via existing helper (`hash_token` etc.).
+      * [ ] Insert into `auth_credentials`.
+* [ ] Respond `200` for all events (reject on bad sig).
+
+⚡ **Smoke tests**
+
+* [ ] `curl -X POST /billing/checkout-session` returns redirect URL.
+* [ ] `stripe trigger checkout.session.completed` inserts user + key (log key to console for now).
+* [ ] Hitting protected `POST /sessions` with the new token ⇒ `200`; without ⇒ `401`.
+
+*Note: replacing the earlier “Stripe (`{HTTP_METHOD} /TODO/RESOURCE_PATH`)" placeholder keeps the timeline aligned with the rest of Day 1.*
 
 **Endpoint (`POST /auth/api-keys`)**
 

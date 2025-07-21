@@ -8,6 +8,13 @@ authors = ["Ross Nkama <ross@dedsol.xyz>"]
 [dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
 forkforge-config = { path = "../forkforge-config" }
+forkforge-models = { path = "../forkforge-models" }
 reqwest = { version = "0.12.22", features = ["json"] }
 serde = { workspace = true }
+serde_json = "1.0.140"
+serde_urlencoded = "0.7"
+urlencoding = "2.1"
 tokio = { workspace = true }
+open = "5.3.2"
+qr2term = "0.3.3"
+colored = "3.0.0"

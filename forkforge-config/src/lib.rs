@@ -6,16 +6,30 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
+    // API
     #[serde(default = "default_api_host")]
     pub api_host: String,
     #[serde(default = "default_api_port")]
     pub api_port: u16,
+    #[serde(default = "default_api_base_url")]
+    pub api_base_url: String,
     #[serde(default = "default_database_url")]
     pub database_url: String,
     #[serde(default)]
     pub stripe_webhook_secret: String,
     #[serde(default = "default_api_timeout_seconds")]
     pub api_timeout_seconds: u64,
+
+    // Stripe
+    pub stripe_publishable_key: Option<String>,
+    pub stripe_secret_key: Option<String>,
+    pub stripe_product_id_entry_tier: Option<String>,
+    pub stripe_product_id_lite_tier: Option<String>,
+    pub stripe_product_id_pro_tier: Option<String>,
+
+    // Github
+    pub github_client_id: Option<String>,
+    pub github_client_secret: Option<String>,
 }
 
 fn default_api_host() -> String {
@@ -24,6 +38,10 @@ fn default_api_host() -> String {
 
 fn default_api_port() -> u16 {
     3000
+}
+
+fn default_api_base_url() -> String {
+    "http://localhost:3000".to_string()
 }
 
 fn default_database_url() -> String {
@@ -39,9 +57,17 @@ impl Default for Config {
         Self {
             api_host: default_api_host(),
             api_port: default_api_port(),
+            api_base_url: default_api_base_url(),
             database_url: default_database_url(),
             stripe_webhook_secret: String::new(),
             api_timeout_seconds: default_api_timeout_seconds(),
+            stripe_publishable_key: None,
+            stripe_secret_key: None,
+            stripe_product_id_entry_tier: None,
+            stripe_product_id_lite_tier: None,
+            stripe_product_id_pro_tier: None,
+            github_client_id: None,
+            github_client_secret: None,
         }
     }
 }

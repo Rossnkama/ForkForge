@@ -1,5 +1,5 @@
 [workspace]
-members = ["forkforge-cli", "forkforge-api", "forkforge-config"]
+members = ["forkforge-cli", "forkforge-api", "forkforge-config", "forkforge-models"]
 resolver = "2"
 
 [workspace.dependencies]
