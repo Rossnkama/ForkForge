@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use forkforge_config::Config;
-use forkforge_models::{CheckUserAuthorisedRequestParams, DeviceCodeResponse};
+use forkforge_models::{CheckUserAuthorisedResponse, DeviceCodeResponse, PollAuthorizationRequest};
 
 mod github;
 
@@ -49,15 +49,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Step 2: Prompt user to verify
             github::prompt_user_to_verify(&device_auth_data).await;
 
-            // Step 3: Poll for user authorization
-            let auth_response = github::check_user_authorised(CheckUserAuthorisedRequestParams {
-                client_id: config
-                    .github_client_id
-                    .ok_or("GitHub client ID not configured")?,
-                device_code: device_auth_data.device_code,
-                grant_type: "urn:ietf:params:oauth:grant-type:device_code".to_owned(),
-            })
-            .await?;
+            // Step 3: Poll for user authorization with extended timeout
+            // Create a separate client with 15-minute timeout for the long-polling auth endpoint
+            let auth_client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(900)) // 15 minutes
+                .build()
+                .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+            let auth_response: CheckUserAuthorisedResponse = auth_client
+                .post(format!(
+                    "{}/auth/github/wait-for-authorization",
+                    config.api_base_url
+                ))
+                .json(&PollAuthorizationRequest {
+                    device_code: device_auth_data.device_code,
+                })
+                .send()
+                .await
+                .map_err(|e| format!("Failed to connect to API: {}", e))?
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse API response: {}", e))?;
 
             // Step 4: Get user info
             let user = github::get_user_info(&auth_response.access_token).await?;

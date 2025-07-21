@@ -35,6 +35,12 @@ pub struct CheckUserAuthorisedRequestParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PollAuthorizationRequest {
+    /// Device code from the initial authorization request
+    pub device_code: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckUserAuthorisedResponse {
     /// GitHub personal access token for authenticated API requests
     pub access_token: String,
@@ -50,6 +56,6 @@ pub struct CheckUserAuthorisedResponse {
 pub struct GitHubUser {
     /// Unique GitHub user ID (numeric)
     pub id: u64,
-    /// The GitHub username of the repository owner
+    /// The GitHub username of the repository owner i.e. katooshka
     pub login: String,
 }
