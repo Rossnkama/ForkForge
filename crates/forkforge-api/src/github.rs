@@ -1,9 +1,9 @@
 use forkforge_models::{
     CheckUserAuthorisedRequestParams, CheckUserAuthorisedResponse, DeviceCodeRequestParams,
-    DeviceCodeResponse, PollAuthorizationRequest,
+    DeviceCodeResponse, GitHubUser, PollAuthorizationRequest, UserLoginResponse,
 };
 use reqwest::header::{HeaderMap, HeaderValue};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tokio::time::{Instant, sleep};
 
@@ -34,6 +34,11 @@ struct GitHubDeviceFlowError {
     _error_description: String,
     #[serde(rename = "error_uri")]
     _error_uri: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LoginRequest {
+    pub access_token: String,
 }
 
 #[derive(Debug)]
@@ -89,7 +94,6 @@ impl std::fmt::Display for UserFacingError {
 
 impl std::error::Error for UserFacingError {}
 
-// TODO: Check that this is server side safe
 #[debug_handler]
 pub(crate) async fn check_user_authorised(
     State(state): State<AppState>,
@@ -290,4 +294,27 @@ pub(crate) async fn github_create_user_device_session(
         .expect("Failed to parse response");
 
     Json(response)
+}
+
+#[debug_handler]
+pub async fn github_login(
+    State(state): State<AppState>,
+    Json(access_token): Json<String>,
+) -> Json<GitHubUser> {
+    let user_response = state
+        .http_client
+        .get("https://api.github.com/user")
+        .header("Authorization", format!("Bearer {}", access_token))
+        .header("Accept", "application/vnd.github+json")
+        .header("User-Agent", "forkforge-cli")
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    Json(
+        user_response
+            .json::<GitHubUser>()
+            .await
+            .expect("Failed to parse response"),
+    )
 }

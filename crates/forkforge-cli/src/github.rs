@@ -1,8 +1,10 @@
+use arboard::Clipboard;
 use colored::*;
 use forkforge_models::{DeviceCodeResponse, GitHubUser};
-use reqwest::Client;
 use serde::Deserialize;
 use std::io::{self, Write};
+
+use crate::client_config::ClientConfig;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -17,34 +19,59 @@ enum GitHubDeviceFlowErrorType {
     DeviceFlowDisabled,
 }
 
-pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
+/// Display the authentication header and separator
+fn display_auth_header() {
     println!("\n{}", "GitHub Device Authentication".bright_white().bold());
     println!("{}", "━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_cyan());
+}
 
-    // Highlight the verification code
+/// Display the verification code and copy it to clipboard
+fn display_and_copy_code(user_code: &str) {
     println!();
     println!(
         "  {}",
-        format!(" Code: {} ", response.user_code)
+        format!(" Code: {} ", user_code)
             .bright_white()
             .bold()
             .on_black()
     );
-    println!();
 
+    // Copy code to clipboard
+    match Clipboard::new() {
+        Ok(mut clipboard) => {
+            if let Err(e) = clipboard.set_text(user_code) {
+                eprintln!("Failed to copy code to clipboard: {}", e);
+            } else {
+                println!(
+                    "  {} {}",
+                    "✓".bright_green(),
+                    "Code copied to clipboard! You can now paste it on GitHub.".green()
+                );
+            }
+        }
+        Err(e) => eprintln!("Failed to access clipboard: {}", e),
+    }
+
+    println!();
+}
+
+/// Display the verification URL and QR code
+fn display_verification_url(verification_uri: &str) {
     println!(
         "{} {}",
         "Verification URL:".bright_white(),
-        response.verification_uri.bright_blue().underline()
+        verification_uri.bright_blue().underline()
     );
 
     // Display QR code for the verification URL
     println!("\nScan this QR code with your phone:");
-    if let Err(e) = qr2term::print_qr(&response.verification_uri) {
+    if let Err(e) = qr2term::print_qr(verification_uri) {
         eprintln!("Failed to generate QR code: {}", e);
     }
+}
 
-    // Enhanced prompt with color coding
+/// Prompt user for browser action and handle their choice
+fn prompt_browser_action(verification_uri: &str) -> io::Result<()> {
     println!(
         "\n{}",
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_cyan()
@@ -74,10 +101,10 @@ pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
         "Choose:".bright_white().bold(),
         "(y/n)".bright_yellow()
     );
-    io::stdout().flush().unwrap();
+    io::stdout().flush()?;
 
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    io::stdin().read_line(&mut input)?;
 
     println!(
         "{}",
@@ -86,7 +113,7 @@ pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
 
     if input.trim().to_lowercase() == "y" {
         println!("{} {}", "✓".bright_green(), "Opening browser...".green());
-        if let Err(e) = open::that(&response.verification_uri) {
+        if let Err(e) = open::that(verification_uri) {
             eprintln!("{} Failed to open browser: {}", "✗".bright_red(), e);
             println!(
                 "\n{}",
@@ -101,18 +128,37 @@ pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
             "Please manually navigate to the URL above and enter your verification code.".yellow()
         );
     }
+
+    Ok(())
 }
 
-pub async fn get_user_info(access_token: &str) -> Result<GitHubUser, Box<dyn std::error::Error>> {
-    let client = Client::new();
-    let user_response = client
-        .get("https://api.github.com/user")
-        .header("Authorization", format!("Bearer {}", access_token))
-        .header("Accept", "application/vnd.github+json")
-        .header("User-Agent", "forkforge-cli")
+/// Main function to orchestrate the OAuth device flow user verification process
+pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
+    // Step 1: Display authentication header
+    display_auth_header();
+
+    // Step 2: Display and copy verification code
+    display_and_copy_code(&response.user_code);
+
+    // Step 3: Display verification URL and QR code
+    display_verification_url(&response.verification_uri);
+
+    // Step 4: Prompt for browser action
+    if let Err(e) = prompt_browser_action(&response.verification_uri) {
+        eprintln!("Error handling browser prompt: {}", e);
+    }
+}
+
+pub async fn get_user_info(
+    access_token: &str,
+    config: &ClientConfig,
+) -> Result<GitHubUser, Box<dyn std::error::Error>> {
+    let url = format!("{}/auth/github-login", config.api_base_url);
+    let response = config
+        .http_client
+        .get(&url)
+        .json(access_token)
         .send()
         .await?;
-
-    let user: GitHubUser = user_response.json().await?;
-    Ok(user)
+    Ok(response.json::<GitHubUser>().await?)
 }

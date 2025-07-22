@@ -3,7 +3,7 @@ use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;
 
-static MIGRATOR: Migrator = sqlx::migrate!("../migrations");
+static MIGRATOR: Migrator = sqlx::migrate!("../../migrations");
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

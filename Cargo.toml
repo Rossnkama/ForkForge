@@ -1,5 +1,5 @@
 [workspace]
-members = ["forkforge-cli", "forkforge-api", "forkforge-config", "forkforge-models"]
+members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]

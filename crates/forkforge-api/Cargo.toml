@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [[bin]]
+name = "forkforge-api"
+path = "src/server.rs"
+
+[[bin]]
 name = "forkforge-db-init"
 path = "src/bin/db_init.rs"
 

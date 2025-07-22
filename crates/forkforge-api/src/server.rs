@@ -11,7 +11,7 @@ use serde::Serialize;
 use forkforge_config::Config;
 use github::github_create_user_device_session;
 
-use crate::github::check_user_authorised;
+use crate::github::{check_user_authorised, github_login};
 
 // TODO: Add some sort of rate limiting to the requests to github.com
 #[derive(Clone)]
@@ -85,10 +85,10 @@ async fn main() {
             "/auth/github/wait-for-authorization",
             post(check_user_authorised),
         )
-        .route("/auth/github-login/{:access_token}", todo!())
+        .route("/auth/github-login", get(github_login))
         .route("/health", get(health))
         .route("/sessions", post(new_session))
-        .route("/snapshots/{:id}", post(new_snapshot))
+        .route("/snapshots/{id}", post(new_snapshot))
         .route("/billing/webhook", post(stripe_webhook))
         .with_state(state);
 

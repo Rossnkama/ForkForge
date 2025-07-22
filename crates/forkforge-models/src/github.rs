@@ -59,3 +59,9 @@ pub struct GitHubUser {
     /// The GitHub username of the repository owner i.e. katooshka
     pub login: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserLoginResponse {
+    pub user: GitHubUser,
+    pub access_token: String,
+}
