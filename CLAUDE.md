@@ -2,11 +2,27 @@
 
 Fast Solana mainnet forking CLI for local development and testing.
 
-## Notes to claude
+## Core Instructions
 
-### Check working directory before relative location commands w.r.t the file system
+### Do ONLY What's Asked
 
-When you want to run relative commands i.e. cd thing/... or mkdir, use pwd to make sure that you're in the directory that you think you're in so that you don't make or remove files in the wrong directory.
+- **NEVER** add features beyond the exact request
+- **NEVER** create files unless absolutely necessary  
+- **ALWAYS** prefer editing existing files over creating new ones
+- **ONLY** implement the specific task - nothing more, nothing less
+
+### Code Quality
+
+- Write idiomatic Rust with minimal abstractions
+- Favor simplicity over cleverness
+- Keep diff sizes small
+- Use existing patterns in the codebase
+
+### Before File Operations
+
+- Run `pwd` before any mkdir/cd commands
+- Verify directory location before creating/modifying files
+- Use absolute paths when uncertain
 
 ## Project Overview
 
@@ -16,7 +32,7 @@ When you want to run relative commands i.e. cd thing/... or mkdir, use pwd to ma
 
 ## Project Business Description
 
-### Chainbox
+### Chainbox/Forkforge
 
 Chainbox is an open-source Rust CLI that lets a developer create a fully
 forked, state-accurate Solana mainnet validator in **< 10 s** with
@@ -52,241 +68,36 @@ workflows.
 
 This concise block can be supplied as meta-context to any LLM for technical, product, or go-to-market tasks.
 
-## Project Structure
+## Commands
 
-```
-forkforge/
-├── crates/
-│   ├── api/         # Axum-based API server
-│   │   ├── src/
-│   │   │   └── server.rs    # API endpoints and server setup
-│   ├── cli/         # Rust CLI tool
-│   │   ├── src/
-│   │   │   └── client.rs    # CLI commands and client
-│   ├── config/      # Shared configuration library
-│   │   ├── src/
-│   │   │   └── lib.rs     # Config struct and environment loading
-│   └── models/      # Shared data models
-│       ├── src/
-│       │   └── lib.rs     # Common data structures
-├── forkforge-bruno/    # API testing collection
-├── .env.example        # Example environment variables
-└── Cargo.toml         # Workspace root with shared dependencies
-```
-
-## Common Commands
-
-### Development
-
-- `cargo build`: Build both projects
-- `cargo run --bin api`: Start API server on 127.0.0.1:3000
-- `cargo run --bin cli -- up`: Launch forked validator (makes API call to /sessions)
+- `cargo build`: Build all crates
+- `cargo run --bin api`: Start API server (127.0.0.1:3000)
+- `cargo run --bin cli -- up`: Launch forked validator
 - `cargo test`: Run tests
 - `cargo fmt`: Format code
 - `cargo clippy`: Run linter
 
-### API Testing
-
-- Bruno collection available in `forkforge-bruno/`
-- Base URL: `http://127.0.0.1:3000`
-
 ## Code Style
 
-- Use Rust 2024 edition features
-- Prefer `tokio` for async runtime
-- Use `figment` for configuration management
-- Follow standard Rust naming conventions
-- Prefer explicit error handling with `Result`
+- Rust 2024 edition
+- `tokio` for async
+- `figment` for config
+- Explicit `Result` error handling
+- Standard Rust naming conventions
+
+## Learning Preferences
+
+- Personal learning notes go in `personal_learning.md` (gitignored) - keep them information-dense with annotated `rust` code examples showing real production patterns
 
 ## Configuration
 
-### Current State
+- Config: `config.toml` at project root
+- Profiles: default, prod (via `FORKFORGE_PROFILE`)
+- Env vars: `FORKFORGE_` prefix overrides config
 
-The project uses figment for hierarchical configuration through the `config` shared library. Configuration is managed via:
+## Workflow Rules
 
-- A `config.toml` file with profile-based sections (default, prod, etc.)
-- Environment variables with `FORKFORGE_` prefix that override TOML values
-- Profile selection via `FORKFORGE_PROFILE` environment variable
-
-### Configuration File Location
-
-The `config.toml` file is located at the root of the project directory:
-
-```
-forkforge/
-├── config.toml         # Main configuration file
-├── crates/
-│   ├── api/
-│   ├── cli/
-└── ...
-```
-
-### Configuration Profiles
-
-The project supports multiple configuration profiles defined in `config.toml`:
-
-```toml
-[default]
-# API Configuration
-api_host = "127.0.0.1"
-api_port = 3000
-api_base_url = "http://127.0.0.1:3000"
-database_url = "sqlite://forkforge_dev.db"
-api_timeout_seconds = 30
-
-# Stripe Configuration
-stripe_publishable_key = "pk_test_..."
-stripe_secret_key = "sk_test_..."
-stripe_product_id_entry_tier = "price_..."
-stripe_product_id_lite_tier = "price_..."
-stripe_product_id_pro_tier = "price_..."
-
-# GitHub OAuth Configuration
-github_client_id = "..."
-github_client_secret = "..."
-
-[prod]
-# Production API settings
-api_host = "0.0.0.0"
-api_port = 8080
-database_url = "postgres://forkforge:password@localhost/forkforge"
-api_timeout_seconds = 60
-# Note: Other configurations (Stripe, GitHub) should be added for production
-```
-
-### Environment Variables
-
-All configuration values can be overridden via environment variables with `FORKFORGE_` prefix:
-
-- `FORKFORGE_PROFILE` - Select configuration profile (default: "default")
-- `FORKFORGE_API_HOST` - API server host
-- `FORKFORGE_API_PORT` - API server port
-- `FORKFORGE_DATABASE_URL` - Database connection string
-- `FORKFORGE_STRIPE_WEBHOOK_SECRET` - Stripe webhook secret
-- `FORKFORGE_API_TIMEOUT_SECONDS` - API request timeout
-
-### config Library Structure
-
-```rust
-Config {
-    // API Configuration
-    api_host: String,
-    api_port: u16,
-    api_base_url: String,
-    database_url: String,
-    api_timeout_seconds: u64,
-    
-    // Stripe Configuration
-    stripe_publishable_key: String,
-    stripe_secret_key: String,
-    stripe_webhook_secret: String,
-    stripe_product_id_entry_tier: String,
-    stripe_product_id_lite_tier: String,
-    stripe_product_id_pro_tier: String,
-    
-    // GitHub OAuth Configuration
-    github_client_id: String,
-    github_client_secret: String,
-}
-```
-
-The library provides:
-
-- `Config::figment()` - Returns the Figment configuration builder
-- `Config::from_profile(&str)` - Loads config for a specific profile
-- `Config::load()` - Loads config using FORKFORGE_PROFILE env var
-
-### Setup Instructions
-
-1. Copy `.env.example` to `.env` for environment overrides
-2. Edit `config.toml` to define profiles
-3. Set `FORKFORGE_PROFILE=prod` to use production profile
-4. Environment variables override TOML values
-
-### Configuration Precedence
-
-1. Default values from `Config::default()`
-2. Profile-specific values from `config.toml`
-3. Environment variables (highest priority)
-
-## Key APIs
-
-### api endpoints
-
-- `GET /health`: Health check - returns `{"data": "Ok"}`
-- `POST /sessions`: Create new fork session (stub)
-- `POST /snapshots/:id`: Create snapshot with ID parameter (stub)
-- `POST /billing/webhook`: Stripe webhook handler (stub)
-
-### Shared Workspace Dependencies
-
-The root `Cargo.toml` defines workspace-level dependencies:
-
-```toml
-[workspace.dependencies]
-tokio = { version = "1.46.1", features = ["rt", "full", "macros"] }
-serde = { version = "1.0.219", features = ["derive"] }
-figment = { version = "0.10.19", features = ["toml", "env"] }
-```
-
-Both projects reference these with `workspace = true`.
-
-## Testing Strategy
-
-- Unit tests for core logic
-- Integration tests for API endpoints
-- Snapshot testing for validator state
-
-## Important Notes
-
-- **Database**: SQLx with SQLite for local development
-- **Authentication**: Stripe webhook validation implemented (HMAC-SHA256)
-- **State Management**: Future ZFS snapshot integration planned
-- **Performance**: Target <10s fork creation time
-- **Configuration**: Figment-based hierarchical configuration via `config` library with profile support
-- **Async Runtime**: Tokio with full features across both projects
-- **Error Handling**: Explicit `Result` types throughout
-- **Config Library**: `config` provides centralized configuration with profile-based TOML files and environment variable overrides
-
-## TODO Integration
-
-- Solana validator fork implementation
-- Account cloning from RPC
-- Time-travel snapshot system
-- CLI command implementation beyond `up`
-- Kubernetes deployment configuration
-
-## Dependencies to Know
-
-- `axum`: Web framework for API
-- `clap`: CLI argument parsing
-- `figment`: Configuration management
-- `sqlx`: Database access (SQLite)
-- `reqwest`: HTTP client
-- `tokio`: Async runtime
-
-## Future Features
-
-- Pre-indexed state packs marketplace
-- Sharable snapshot URLs
-- CI/IDE integrations
-- Helius RPC credit bundling
-
-## Recent Changes
-
-- Added `config` library as a new workspace member for centralized configuration
-- Implemented figment-based hierarchical configuration with profile support
-- Created `config.toml` with default and production profiles
-- Profile selection via `FORKFORGE_PROFILE` environment variable
-- Environment variables (with `FORKFORGE_` prefix) override TOML values
-- Config library provides `figment()`, `from_profile()`, and `load()` methods
-
-## Configuration Implementation Status
-
-The project now has a fully functional configuration system:
-
-- `config` library implements figment for hierarchical configuration
-- Supports profile-based configuration (default, prod, etc.) via `config.toml`
-- Environment variables override TOML values for flexibility
-- API and CLI projects can integrate by using `forkforge_config::Config::load()`
-- Configuration precedence: defaults → TOML profile → environment variables
+- Run `cargo fmt` and `cargo clippy` after code changes
+- Test only what changed, not entire suite
+- Create feature branches from develop
+- Check existing patterns before implementing new ones

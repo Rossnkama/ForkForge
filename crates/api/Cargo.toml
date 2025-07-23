@@ -16,8 +16,10 @@ name = "migrate"
 path = "src/bin/migrate.rs"
 
 [dependencies]
+async-trait = "0.1"
 axum = { version = "0.8.4", features = ["macros"] }
 common = { path = "../common" }
+domain = { path = "../domain" }
 hmac = "0.12.1"
 reqwest = { version = "0.12.22", features = ["json"] }
 serde = { workspace = true }

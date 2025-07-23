@@ -1,23 +1,10 @@
 use arboard::Clipboard;
 use colored::*;
-use common::{DeviceCodeResponse, GitHubUser};
-use serde::Deserialize;
+use common::DeviceCodeResponse;
+use domain::services::auth::types::GitHubUser;
 use std::io::{self, Write};
 
 use crate::client_config::ClientConfig;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum GitHubDeviceFlowErrorType {
-    AuthorizationPending,
-    SlowDown,
-    ExpiredToken,
-    UnsupportedGrantType,
-    IncorrectClientCredentials,
-    IncorrectDeviceCode,
-    AccessDenied,
-    DeviceFlowDisabled,
-}
 
 /// Display the authentication header and separator
 fn display_auth_header() {

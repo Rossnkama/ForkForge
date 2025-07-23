@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
-use common::{
-    CheckUserAuthorisedResponse, DeviceCodeResponse, GitHubUser, PollAuthorizationRequest,
-};
+use common::{CheckUserAuthorisedResponse, DeviceCodeResponse, PollAuthorizationRequest};
+use domain::services::auth::types::GitHubUser;
 
 mod client_config;
 mod github;

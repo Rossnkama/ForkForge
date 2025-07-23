@@ -1,4 +1,5 @@
 mod github;
+mod http_client;
 
 use axum::{
     Json, Router,
@@ -7,21 +8,36 @@ use axum::{
 };
 use reqwest::Client;
 use serde::Serialize;
+use std::sync::Arc;
 
 use common::Config;
+use domain::services::auth::github::GitHubAuthService;
 use github::github_create_user_device_session;
 
 use crate::github::{check_user_authorised, github_login};
+use crate::http_client::ReqwestHttpClient;
 
 // TODO: Add some sort of rate limiting to the requests to github.com
 #[derive(Clone)]
 pub(crate) struct AppState {
     config: Config,
     http_client: Client,
+    github_auth_service: Arc<GitHubAuthService<ReqwestHttpClient>>,
     // Future fields can be added here:
     // db_pool: sqlx::PgPool,
     // redis_client: redis::Client,
     // etc.
+}
+
+#[allow(dead_code)]
+impl AppState {
+    fn config(&self) -> &Config {
+        &self.config
+    }
+
+    fn http_client(&self) -> &Client {
+        &self.http_client
+    }
 }
 
 // TODO: We're gonna start validating incoming requests
@@ -35,18 +51,21 @@ async fn health() -> Json<ApiResponse<&'static str>> {
 }
 
 async fn new_session() -> Json<ApiResponse<&'static str>> {
+    // TODO: Use domain::services::sessions::create_session
     Json(ApiResponse {
         data: "Starting session stub",
     })
 }
 
 async fn new_snapshot(Path(_id): Path<String>) -> Json<ApiResponse<&'static str>> {
+    // TODO: Use domain::services::snapshots::create_snapshot
     Json(ApiResponse {
         data: "Starting snapshot stub",
     })
 }
 
 async fn stripe_webhook() -> Json<ApiResponse<&'static str>> {
+    // TODO: Use domain::services::billing::webhooks::process_stripe_webhook
     Json(ApiResponse {
         data: "Starting webhook stub",
     })
@@ -70,9 +89,19 @@ async fn main() {
         .build()
         .expect("Failed to build HTTP client");
 
+    let reqwest_adapter = ReqwestHttpClient::new(http_client.clone());
+    let github_auth_service = Arc::new(GitHubAuthService::new(
+        config
+            .github_client_id
+            .clone()
+            .expect("GitHub client ID not configured"),
+        reqwest_adapter,
+    ));
+
     let state = AppState {
         config: config.clone(),
         http_client,
+        github_auth_service,
     };
 
     let app = Router::new()

@@ -1,0 +1,19 @@
+[package]
+name = "domain"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_urlencoded = "0.7"
+tokio = { version = "1.35", features = ["full"] }
+tracing = "0.1"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Domain specific dependencies that will be needed
+url = "2.5"

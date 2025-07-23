@@ -1,227 +1,57 @@
 use common::{
-    CheckUserAuthorisedRequestParams, CheckUserAuthorisedResponse, DeviceCodeRequestParams,
-    DeviceCodeResponse, GitHubUser, PollAuthorizationRequest,
+    CheckUserAuthorisedResponse, DeviceCodeResponse, GitHubUser, PollAuthorizationRequest,
 };
-use reqwest::header::{HeaderMap, HeaderValue};
-use serde::Deserialize;
-use std::time::Duration;
-use tokio::time::{Instant, sleep};
+use domain::services::auth::AuthError;
 
-use axum::{Json, debug_handler, extract::State};
+use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
 
 use crate::AppState;
 
-const GITHUB_CHECK_USER_AUTHORISED_URL: &str = "https://github.com/login/oauth/access_token";
-const GITHUB_DEVICE_CODE_REQUEST_URL: &str = "https://github.com/login/device/code";
+// Wrapper to implement IntoResponse for domain error types
+pub(crate) struct ApiError(AuthError);
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum GitHubDeviceFlowErrorType {
-    AuthorizationPending,
-    SlowDown,
-    ExpiredToken,
-    UnsupportedGrantType,
-    IncorrectClientCredentials,
-    IncorrectDeviceCode,
-    AccessDenied,
-    DeviceFlowDisabled,
-}
-
-#[derive(Debug, Deserialize)]
-struct GitHubDeviceFlowError {
-    error: GitHubDeviceFlowErrorType,
-    #[serde(rename = "error_description")]
-    _error_description: String,
-    #[serde(rename = "error_uri")]
-    _error_uri: String,
-}
-
-#[derive(Debug)]
-pub enum UserFacingError {
-    // Authentication specific errors
-    UserAuthenticationTimeout,
-    UserDeniedAuthentication,
-
-    // Server/backend errors (should be vague)
-    ServerConfigurationError { debug_info: String },
-    InternalServerError { debug_info: String },
-}
-
-impl UserFacingError {
-    fn message(&self) -> String {
-        match self {
-            UserFacingError::UserAuthenticationTimeout => {
-                "Authentication timed out. Please try logging in again.".to_string()
-            }
-            UserFacingError::UserDeniedAuthentication => {
-                "Authentication was denied. Please check your permissions and try again."
-                    .to_string()
-            }
-            UserFacingError::ServerConfigurationError { debug_info } => {
-                #[cfg(debug_assertions)]
-                {
-                    format!("Server configuration error. [DEBUG: {}]", debug_info)
-                }
-                #[cfg(not(debug_assertions))]
-                {
-                    "Something went wrong on our end. We're looking into it.".to_string()
-                }
-            }
-            UserFacingError::InternalServerError { debug_info } => {
-                #[cfg(debug_assertions)]
-                {
-                    format!("Internal server error. [DEBUG: {}]", debug_info)
-                }
-                #[cfg(not(debug_assertions))]
-                {
-                    "Something went wrong on our end. We're looking into it.".to_string()
-                }
-            }
-        }
+impl From<AuthError> for ApiError {
+    fn from(err: AuthError) -> Self {
+        ApiError(err)
     }
 }
 
-impl std::fmt::Display for UserFacingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message())
+impl IntoResponse for ApiError {
+    fn into_response(self) -> axum::response::Response {
+        let status = match &self.0 {
+            AuthError::UserAuthenticationTimeout => StatusCode::REQUEST_TIMEOUT,
+            AuthError::UserDeniedAuthentication => StatusCode::UNAUTHORIZED,
+            AuthError::ServerConfigurationError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthError::InternalServerError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
+        (
+            status,
+            Json(serde_json::json!({ "error": self.0.message() })),
+        )
+            .into_response()
     }
 }
-
-impl std::error::Error for UserFacingError {}
 
 #[debug_handler]
 pub(crate) async fn check_user_authorised(
     State(state): State<AppState>,
     Json(poll_request): Json<PollAuthorizationRequest>,
-) -> Json<CheckUserAuthorisedResponse> {
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        "Content-Type",
-        HeaderValue::from_static("application/x-www-form-urlencoded"),
-    );
-    headers.insert("Accept", HeaderValue::from_static("application/json"));
+) -> Result<Json<CheckUserAuthorisedResponse>, ApiError> {
+    let domain_response = state
+        .github_auth_service
+        .poll_authorization(poll_request.device_code)
+        .await?;
 
-    // Build the full request params with server-side client_id
-    let check_user_authorised_request_params = CheckUserAuthorisedRequestParams {
-        client_id: state.config.github_client_id.clone().unwrap_or_else(|| {
-            panic!(
-                "{}",
-                UserFacingError::ServerConfigurationError {
-                    debug_info: "GitHub client ID not configured".to_string()
-                }
-            )
-        }),
-        device_code: poll_request.device_code,
-        grant_type: "urn:ietf:params:oauth:grant-type:device_code".to_owned(),
+    // Convert domain response to common response type
+    let response = CheckUserAuthorisedResponse {
+        access_token: domain_response.access_token,
+        _token_type: domain_response.token_type,
+        _scope: domain_response.scope,
     };
 
-    let body =
-        serde_urlencoded::to_string(check_user_authorised_request_params).unwrap_or_else(|e| {
-            panic!(
-                "{}",
-                UserFacingError::InternalServerError {
-                    debug_info: format!("Failed to serialize request params: {}", e)
-                }
-            )
-        });
-
-    let start_instant = Instant::now();
-
-    loop {
-        // Check timeout before processing error
-        if start_instant.elapsed() >= Duration::from_secs(900) {
-            panic!("{}", UserFacingError::UserAuthenticationTimeout);
-        }
-
-        sleep(Duration::from_secs(5)).await;
-
-        let response_headers = state
-            .http_client
-            .post(GITHUB_CHECK_USER_AUTHORISED_URL)
-            .headers(headers.clone())
-            .body(body.clone())
-            .send()
-            .await
-            .unwrap_or_else(|e| {
-                panic!(
-                    "{}",
-                    UserFacingError::InternalServerError {
-                        debug_info: format!("Failed to send request to GitHub: {}", e)
-                    }
-                )
-            });
-
-        let response_text = response_headers.text().await.unwrap_or_else(|e| {
-            panic!(
-                "{}",
-                UserFacingError::InternalServerError {
-                    debug_info: format!("Failed to get response text: {}", e)
-                }
-            )
-        });
-
-        // Try to parse as error first (most common case during polling)
-        if let Ok(error_response) = serde_json::from_str::<GitHubDeviceFlowError>(&response_text) {
-            match error_response.error {
-                GitHubDeviceFlowErrorType::AuthorizationPending => continue,
-                GitHubDeviceFlowErrorType::SlowDown => {
-                    sleep(Duration::from_secs(2)).await;
-                    continue;
-                }
-                GitHubDeviceFlowErrorType::ExpiredToken => {
-                    panic!("{}", UserFacingError::UserAuthenticationTimeout);
-                }
-                GitHubDeviceFlowErrorType::UnsupportedGrantType => {
-                    panic!(
-                        "{}",
-                        UserFacingError::InternalServerError {
-                            debug_info: "Unsupported grant type".to_string(),
-                        }
-                    );
-                }
-                GitHubDeviceFlowErrorType::IncorrectClientCredentials => {
-                    panic!(
-                        "{}",
-                        UserFacingError::ServerConfigurationError {
-                            debug_info: "Invalid client credentials such as client_id".to_string(),
-                        }
-                    );
-                }
-                GitHubDeviceFlowErrorType::IncorrectDeviceCode => {
-                    panic!(
-                        "{}",
-                        UserFacingError::ServerConfigurationError {
-                            debug_info: "Incorrect Device Code".to_string(),
-                        }
-                    );
-                }
-                GitHubDeviceFlowErrorType::AccessDenied => {
-                    panic!("{}", UserFacingError::UserDeniedAuthentication);
-                }
-                GitHubDeviceFlowErrorType::DeviceFlowDisabled => {
-                    panic!(
-                        "{}",
-                        UserFacingError::InternalServerError {
-                            debug_info: "Device flow disabled in github app settings".to_string(),
-                        }
-                    );
-                }
-            }
-        }
-
-        // If not an error, must be success
-        let success_response: CheckUserAuthorisedResponse = serde_json::from_str(&response_text)
-            .unwrap_or_else(|e| {
-                panic!(
-                    "{}",
-                    UserFacingError::InternalServerError {
-                        debug_info: format!("Failed to parse success response: {}", e)
-                    }
-                )
-            });
-        println!("Authentication successful, Token: {:?}", success_response);
-        return Json(success_response);
-    }
+    println!("Authentication successful, Token: {:?}", response);
+    Ok(Json(response))
 }
 
 /// Requests device and user verification codes from GitHub's OAuth device flow.
@@ -254,62 +84,41 @@ pub(crate) async fn check_user_authorised(
 #[debug_handler]
 pub(crate) async fn github_create_user_device_session(
     State(state): State<AppState>,
-) -> Json<DeviceCodeResponse> {
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        "Content-Type",
-        HeaderValue::from_static("application/x-www-form-urlencoded"),
-    );
-    headers.insert("Accept", HeaderValue::from_static("application/json"));
+) -> Result<Json<DeviceCodeResponse>, StatusCode> {
+    let domain_response = state
+        .github_auth_service
+        .request_device_code()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // TODO: 1. Use proper error handling
-    let device_code_request_params = DeviceCodeRequestParams {
-        client_id: state
-            .config
-            .github_client_id
-            .clone()
-            .expect("GitHub client ID not configured"),
-        scope: "user".to_owned(),
+    // Convert domain response to common response type
+    let response = DeviceCodeResponse {
+        device_code: domain_response.device_code,
+        user_code: domain_response.user_code,
+        verification_uri: domain_response.verification_uri,
+        _expires_in: domain_response.expires_in,
+        _interval: domain_response.interval,
     };
-    let body = serde_urlencoded::to_string(device_code_request_params)
-        .expect("Failed to serialize request params");
 
-    let response_headers = state
-        .http_client
-        .post(GITHUB_DEVICE_CODE_REQUEST_URL)
-        .headers(headers)
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to send request");
-
-    let response: DeviceCodeResponse = response_headers
-        .json()
-        .await
-        .expect("Failed to parse response");
-
-    Json(response)
+    Ok(Json(response))
 }
 
 #[debug_handler]
 pub async fn github_login(
     State(state): State<AppState>,
     Json(access_token): Json<String>,
-) -> Json<GitHubUser> {
-    let user_response = state
-        .http_client
-        .get("https://api.github.com/user")
-        .header("Authorization", format!("Bearer {}", access_token))
-        .header("Accept", "application/vnd.github+json")
-        .header("User-Agent", "forkforge-cli")
-        .send()
+) -> Result<Json<GitHubUser>, StatusCode> {
+    let domain_user = state
+        .github_auth_service
+        .get_user(&access_token)
         .await
-        .expect("Failed to send request");
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Json(
-        user_response
-            .json::<GitHubUser>()
-            .await
-            .expect("Failed to parse response"),
-    )
+    // Convert domain user to common user type
+    let user = GitHubUser {
+        id: domain_user.id,
+        login: domain_user.login,
+    };
+
+    Ok(Json(user))
 }
