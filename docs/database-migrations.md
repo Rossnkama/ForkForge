@@ -1,5 +1,20 @@
 # Database Migrations Guide
 
+<!--toc:start-->
+- [Database Migrations Guide](#database-migrations-guide)
+  - [Running SQLx Migrations with SQLite](#running-sqlx-migrations-with-sqlite)
+    - [Quick Start - Super Simple Migration Runner (NEW)](#quick-start-super-simple-migration-runner-new)
+    - [How It Works](#how-it-works)
+    - [Creating New Migrations](#creating-new-migrations)
+    - [Recent Changes to Schema](#recent-changes-to-schema)
+    - [Migration Files](#migration-files)
+    - [Manual Migration Commands (Alternative)](#manual-migration-commands-alternative)
+    - [Legacy Database Initialization Tool](#legacy-database-initialization-tool)
+    - [Key SQLite Gotchas](#key-sqlite-gotchas)
+    - [Verifying Migration Status](#verifying-migration-status)
+    - [Best Practices](#best-practices)
+<!--toc:end-->
+
 ## Running SQLx Migrations with SQLite
 
 ### Quick Start - Super Simple Migration Runner (NEW)
@@ -129,4 +144,3 @@ sqlite3 forkforge_dev.db ".schema auth_credentials"
 2. **Test Locally First**: Always test migrations on your local database before committing
 3. **Incremental Changes**: Each migration should be a small, focused change
 4. **No Rollbacks**: SQLx doesn't support rollbacks - plan migrations carefully
-

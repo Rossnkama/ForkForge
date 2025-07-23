@@ -1,5 +1,44 @@
 # Domain Services Documentation
 
+<!--toc:start-->
+- [Domain Services Documentation](#domain-services-documentation)
+  - [Overview](#overview)
+  - [Service Structure](#service-structure)
+    - [Directory Organization](#directory-organization)
+  - [Authentication Service](#authentication-service)
+    - [Purpose](#purpose)
+    - [GitHub OAuth Implementation](#github-oauth-implementation)
+    - [Adding New Auth Providers](#adding-new-auth-providers)
+  - [Session Service](#session-service)
+    - [Purpose](#purpose)
+    - [Core Functions](#core-functions)
+  - [Snapshot Service](#snapshot-service)
+    - [Purpose](#purpose)
+    - [Core Functions](#core-functions)
+  - [Billing Service](#billing-service)
+    - [Purpose](#purpose)
+    - [Webhook Processing](#webhook-processing)
+  - [Forking Service (Planned)](#forking-service-planned)
+    - [Purpose](#purpose)
+    - [Planned Modules](#planned-modules)
+  - [Error Handling](#error-handling)
+    - [Domain Error Types](#domain-error-types)
+    - [Service-Specific Errors](#service-specific-errors)
+  - [Repository Pattern](#repository-pattern)
+    - [Purpose](#purpose)
+    - [Example Repository Trait](#example-repository-trait)
+    - [Benefits](#benefits)
+  - [Testing Strategies](#testing-strategies)
+    - [Unit Testing](#unit-testing)
+    - [Integration Testing](#integration-testing)
+  - [Best Practices](#best-practices)
+    - [Service Design](#service-design)
+    - [Code Organization](#code-organization)
+    - [Future Extensibility](#future-extensibility)
+  - [Implementation Status](#implementation-status)
+  - [Next Steps](#next-steps)
+<!--toc:end-->
+
 ## Overview
 
 The domain layer contains all business logic for ForkForge, organized into focused services that handle specific business capabilities. Each service is designed to be independent, testable, and free from infrastructure concerns.
@@ -297,4 +336,3 @@ mod tests {
 4. **Enhanced Error Handling** - More specific error types
 5. **Performance Optimization** - Caching, connection pooling
 6. **Monitoring Integration** - Metrics and tracing
-

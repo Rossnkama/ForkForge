@@ -1,5 +1,53 @@
 # ForkForge Development Guide
 
+<!--toc:start-->
+- [ForkForge Development Guide](#forkforge-development-guide)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Initial Setup](#initial-setup)
+  - [Project Structure](#project-structure)
+    - [Workspace Organization](#workspace-organization)
+    - [Understanding the Crates](#understanding-the-crates)
+      - [Domain Crate](#domain-crate)
+      - [API Crate](#api-crate)
+      - [CLI Crate](#cli-crate)
+      - [Common Crate](#common-crate)
+  - [Development Workflow](#development-workflow)
+    - [Running the Application](#running-the-application)
+    - [Development Mode with Auto-Reload](#development-mode-with-auto-reload)
+    - [Code Quality](#code-quality)
+  - [Adding New Features](#adding-new-features)
+    - [1. Adding a New Authentication Provider](#1-adding-a-new-authentication-provider)
+    - [2. Adding a New Domain Service](#2-adding-a-new-domain-service)
+    - [3. Adding a New CLI Command](#3-adding-a-new-cli-command)
+  - [Database Development](#database-development)
+    - [Creating a New Migration](#creating-a-new-migration)
+    - [Database Schema Guidelines](#database-schema-guidelines)
+  - [Testing](#testing)
+    - [Unit Testing](#unit-testing)
+    - [Integration Testing](#integration-testing)
+    - [Mocking External Services](#mocking-external-services)
+  - [Configuration Management](#configuration-management)
+    - [Environment-Specific Settings](#environment-specific-settings)
+    - [Using Configuration in Code](#using-configuration-in-code)
+  - [Error Handling](#error-handling)
+    - [Domain Errors](#domain-errors)
+    - [API Error Responses](#api-error-responses)
+  - [Performance Considerations](#performance-considerations)
+    - [Async Best Practices](#async-best-practices)
+    - [Database Optimization](#database-optimization)
+  - [Debugging Tips](#debugging-tips)
+    - [Enable Debug Logging](#enable-debug-logging)
+    - [Use the `dbg!` macro](#use-the-dbg-macro)
+    - [SQL Query Logging](#sql-query-logging)
+  - [Common Issues and Solutions](#common-issues-and-solutions)
+    - [Issue: "GitHub client ID not configured"](#issue-github-client-id-not-configured)
+    - [Issue: Database connection errors](#issue-database-connection-errors)
+    - [Issue: Compilation errors after updating dependencies](#issue-compilation-errors-after-updating-dependencies)
+  - [Contributing Guidelines](#contributing-guidelines)
+  - [Resources](#resources)
+<!--toc:end-->
+
 ## Getting Started
 
 ### Prerequisites
@@ -414,4 +462,3 @@ RUST_LOG=sqlx=debug cargo run
 - [Axum Documentation](https://docs.rs/axum)
 - [SQLx Documentation](https://docs.rs/sqlx)
 - [Tokio Tutorial](https://tokio.rs/tokio/tutorial)
-

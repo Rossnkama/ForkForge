@@ -32,12 +32,21 @@ struct GitHubDeviceFlowError {
     _error_uri: String,
 }
 
+/// Domain-defined contract for HTTP operations
+///
+/// This trait defines what the domain needs without knowing HOW it's implemented.
+/// Infrastructure provides concrete implementations: `impl HttpClient for ReqwestAdapter`
 #[async_trait::async_trait]
 pub trait HttpClient: Send + Sync {
     async fn post_form(&self, url: &str, body: &str) -> Result<String, DomainError>;
     async fn get_with_auth(&self, url: &str, token: &str) -> Result<String, DomainError>;
 }
 
+/// Domain service that uses injected HTTP client
+///
+/// Generic over any `HttpClient` implementation:
+/// - Production: `GitHubAuthService<ReqwestAdapter>`
+/// - Testing: `GitHubAuthService<MockHttpClient>`
 pub struct GitHubAuthService<C: HttpClient> {
     client_id: String,
     http_client: C,

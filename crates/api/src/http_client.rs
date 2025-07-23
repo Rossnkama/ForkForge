@@ -2,18 +2,33 @@ use domain::errors::DomainError;
 use domain::services::auth::github::HttpClient;
 use reqwest::header::{HeaderMap, HeaderValue};
 
-pub struct ReqwestHttpClient {
+/// Adapter that implements domain's HttpClient trait using reqwest
+///
+/// This is the infrastructure layer's concrete implementation.
+/// Usage:
+///
+/// ```rust
+/// let adapter = ReqwestAdapter::new(reqwest::Client::new());
+/// ```
+///
+/// Then inject:
+///
+/// ```rust
+/// GitHubAuthService::new(client_id, adapter);
+/// ```
+///
+pub struct ReqwestAdapter {
     client: reqwest::Client,
 }
 
-impl ReqwestHttpClient {
+impl ReqwestAdapter {
     pub fn new(client: reqwest::Client) -> Self {
         Self { client }
     }
 }
 
 #[async_trait::async_trait]
-impl HttpClient for ReqwestHttpClient {
+impl HttpClient for ReqwestAdapter {
     async fn post_form(&self, url: &str, body: &str) -> Result<String, DomainError> {
         let mut headers = HeaderMap::new();
         headers.insert(

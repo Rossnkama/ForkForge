@@ -1,5 +1,33 @@
 # ForkForge Architecture
 
+<!--toc:start-->
+- [ForkForge Architecture](#forkforge-architecture)
+  - [Overview](#overview)
+  - [Architecture Diagram](#architecture-diagram)
+  - [Layer Responsibilities](#layer-responsibilities)
+    - [Domain Layer (`crates/domain/`)](#domain-layer-cratesdomain)
+    - [API Layer (`crates/api/`)](#api-layer-cratesapi)
+    - [CLI Layer (`crates/cli/`)](#cli-layer-cratescli)
+    - [Common Layer (`crates/common/`)](#common-layer-cratescommon)
+  - [Service Architecture](#service-architecture)
+    - [Authentication Service](#authentication-service)
+    - [Complex Services Pattern](#complex-services-pattern)
+  - [Dependency Flow](#dependency-flow)
+  - [Repository Pattern](#repository-pattern)
+  - [Error Handling](#error-handling)
+    - [Domain Errors](#domain-errors)
+    - [API Error Mapping](#api-error-mapping)
+  - [Configuration Management](#configuration-management)
+  - [Testing Strategy](#testing-strategy)
+    - [Unit Tests](#unit-tests)
+    - [Integration Tests](#integration-tests)
+    - [End-to-End Tests](#end-to-end-tests)
+  - [Future Considerations](#future-considerations)
+    - [Scalability](#scalability)
+    - [Extensibility](#extensibility)
+    - [Maintainability](#maintainability)
+<!--toc:end-->
+
 ## Overview
 
 ForkForge follows Clean Architecture principles to ensure maintainability, testability, and clear separation of concerns. The architecture is designed to be flexible and extensible while keeping the core business logic independent of external frameworks and infrastructure.
@@ -249,4 +277,3 @@ api_port = 8080
 - Clear boundaries between layers
 - Business logic isolated from infrastructure
 - Easy to understand and modify
-

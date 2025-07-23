@@ -1,5 +1,37 @@
 # ForkForge (Chainbox)
 
+<!--toc:start-->
+- [ForkForge (Chainbox)](#forkforge-chainbox)
+  - [Overview](#overview)
+  - [Project Structure](#project-structure)
+  - [Architecture](#architecture)
+    - [Clean Architecture Design](#clean-architecture-design)
+    - [Key Features](#key-features)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Initial Setup](#initial-setup)
+    - [Running the API Server](#running-the-api-server)
+    - [Running the CLI](#running-the-cli)
+  - [Configuration](#configuration)
+    - [Configuration File](#configuration-file)
+    - [Environment Variables](#environment-variables)
+  - [Development](#development)
+    - [Building](#building)
+    - [Testing](#testing)
+    - [Code Quality](#code-quality)
+    - [Database Migrations](#database-migrations)
+  - [Domain Services](#domain-services)
+    - [Authentication Service](#authentication-service)
+    - [Forking Service (Coming Soon)](#forking-service-coming-soon)
+    - [Billing Service](#billing-service)
+    - [Snapshot Service](#snapshot-service)
+  - [Contributing](#contributing)
+    - [Development Guidelines](#development-guidelines)
+  - [Roadmap](#roadmap)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
+<!--toc:end-->
+
 Fast Solana mainnet forking CLI for local development and testing.
 
 ## Overview

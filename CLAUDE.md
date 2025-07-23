@@ -7,7 +7,7 @@ Fast Solana mainnet forking CLI for local development and testing.
 ### Do ONLY What's Asked
 
 - **NEVER** add features beyond the exact request
-- **NEVER** create files unless absolutely necessary  
+- **NEVER** create files unless absolutely necessary
 - **ALWAYS** prefer editing existing files over creating new ones
 - **ONLY** implement the specific task - nothing more, nothing less
 
@@ -87,7 +87,9 @@ This concise block can be supplied as meta-context to any LLM for technical, pro
 
 ## Learning Preferences
 
-- Personal learning notes go in `personal_learning.md` (gitignored) - keep them information-dense with annotated `rust` code examples showing real production patterns
+- Personal learning notes go in `personal_learning.md` (gitignored) - keep them information-dense with annotated `rust` code examples showing real production patterns. Explain with beauty like Richard Feynmann
+
+- If I ask for a brief explanation of a pattern or anything else, don't add to personal learning unless specifically instructed to do so. Always explain like Richard Feynmann, as well as concisely with lots of relevant examples that are made up and (if applicable) from the codebase.
 
 ## Configuration
 

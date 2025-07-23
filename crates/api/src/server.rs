@@ -15,14 +15,14 @@ use domain::services::auth::github::GitHubAuthService;
 use github::github_create_user_device_session;
 
 use crate::github::{check_user_authorised, github_login};
-use crate::http_client::ReqwestHttpClient;
+use crate::http_client::ReqwestAdapter;
 
 // TODO: Add some sort of rate limiting to the requests to github.com
 #[derive(Clone)]
 pub(crate) struct AppState {
     config: Config,
     http_client: Client,
-    github_auth_service: Arc<GitHubAuthService<ReqwestHttpClient>>,
+    github_auth_service: Arc<GitHubAuthService<ReqwestAdapter>>,
     // Future fields can be added here:
     // db_pool: sqlx::PgPool,
     // redis_client: redis::Client,
@@ -89,7 +89,7 @@ async fn main() {
         .build()
         .expect("Failed to build HTTP client");
 
-    let reqwest_adapter = ReqwestHttpClient::new(http_client.clone());
+    let reqwest_adapter = ReqwestAdapter::new(http_client.clone());
     let github_auth_service = Arc::new(GitHubAuthService::new(
         config
             .github_client_id
