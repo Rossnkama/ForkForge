@@ -74,6 +74,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "common",
+ "hmac",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sha2",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "arboard"
 version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -326,6 +342,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 
 [[package]]
+name = "cli"
+version = "0.1.0"
+dependencies = [
+ "arboard",
+ "clap",
+ "colored",
+ "common",
+ "open",
+ "qr2term",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "tokio",
+ "urlencoding",
+]
+
+[[package]]
 name = "clipboard-win"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -347,6 +381,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
 dependencies = [
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "figment",
+ "serde",
 ]
 
 [[package]]
@@ -648,56 +690,6 @@ name = "foreign-types-shared"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
-
-[[package]]
-name = "forkforge-api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "forkforge-config",
- "forkforge-models",
- "hmac",
- "reqwest",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sha2",
- "sqlx",
- "tokio",
-]
-
-[[package]]
-name = "forkforge-cli"
-version = "0.1.0"
-dependencies = [
- "arboard",
- "clap",
- "colored",
- "forkforge-models",
- "open",
- "qr2term",
- "reqwest",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "tokio",
- "urlencoding",
-]
-
-[[package]]
-name = "forkforge-config"
-version = "0.1.0"
-dependencies = [
- "figment",
- "serde",
-]
-
-[[package]]
-name = "forkforge-models"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "form_urlencoded"

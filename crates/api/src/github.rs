@@ -1,9 +1,9 @@
-use forkforge_models::{
+use common::{
     CheckUserAuthorisedRequestParams, CheckUserAuthorisedResponse, DeviceCodeRequestParams,
-    DeviceCodeResponse, GitHubUser, PollAuthorizationRequest, UserLoginResponse,
+    DeviceCodeResponse, GitHubUser, PollAuthorizationRequest,
 };
 use reqwest::header::{HeaderMap, HeaderValue};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::Duration;
 use tokio::time::{Instant, sleep};
 
@@ -34,11 +34,6 @@ struct GitHubDeviceFlowError {
     _error_description: String,
     #[serde(rename = "error_uri")]
     _error_uri: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct LoginRequest {
-    pub access_token: String,
 }
 
 #[derive(Debug)]

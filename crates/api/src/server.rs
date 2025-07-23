@@ -8,7 +8,7 @@ use axum::{
 use reqwest::Client;
 use serde::Serialize;
 
-use forkforge_config::Config;
+use common::Config;
 use github::github_create_user_device_session;
 
 use crate::github::{check_user_authorised, github_login};

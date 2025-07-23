@@ -11,7 +11,7 @@ When you want to run relative commands i.e. cd thing/... or mkdir, use pwd to ma
 ## Project Overview
 
 - **Purpose**: Create state-accurate Solana mainnet forks in <10s with account cloning, time-travel snapshots, and integrated debugging
-- **Architecture**: Rust CLI (forkforge-cli) + API server (forkforge-api) with future cloud layer for snapshots
+- **Architecture**: Rust CLI (cli) + API server (api) with future cloud layer for snapshots
 - **Key Feature**: Clone only required accounts from mainnet, not entire 100TB+ state
 
 ## Project Business Description
@@ -56,17 +56,21 @@ This concise block can be supplied as meta-context to any LLM for technical, pro
 
 ```
 forkforge/
-├── forkforge-api/      # Axum-based API server
-│   ├── src/
-│   │   └── main.rs    # API endpoints and server setup
-├── forkforge-cli/      # Rust CLI tool
-│   ├── src/
-│   │   └── main.rs    # CLI commands and client
-├── forkforge-config/   # Shared configuration library (NEW)
-│   ├── src/
-│   │   └── lib.rs     # Config struct and environment loading
+├── crates/
+│   ├── api/         # Axum-based API server
+│   │   ├── src/
+│   │   │   └── server.rs    # API endpoints and server setup
+│   ├── cli/         # Rust CLI tool
+│   │   ├── src/
+│   │   │   └── client.rs    # CLI commands and client
+│   ├── config/      # Shared configuration library
+│   │   ├── src/
+│   │   │   └── lib.rs     # Config struct and environment loading
+│   └── models/      # Shared data models
+│       ├── src/
+│       │   └── lib.rs     # Common data structures
 ├── forkforge-bruno/    # API testing collection
-├── .env.example        # Example environment variables (NEW)
+├── .env.example        # Example environment variables
 └── Cargo.toml         # Workspace root with shared dependencies
 ```
 
@@ -75,8 +79,8 @@ forkforge/
 ### Development
 
 - `cargo build`: Build both projects
-- `cargo run --bin forkforge-api`: Start API server on 127.0.0.1:3000
-- `cargo run --bin forkforge-cli -- up`: Launch forked validator (makes API call to /sessions)
+- `cargo run --bin api`: Start API server on 127.0.0.1:3000
+- `cargo run --bin cli -- up`: Launch forked validator (makes API call to /sessions)
 - `cargo test`: Run tests
 - `cargo fmt`: Format code
 - `cargo clippy`: Run linter
@@ -98,7 +102,7 @@ forkforge/
 
 ### Current State
 
-The project uses figment for hierarchical configuration through the `forkforge-config` shared library. Configuration is managed via:
+The project uses figment for hierarchical configuration through the `config` shared library. Configuration is managed via:
 
 - A `config.toml` file with profile-based sections (default, prod, etc.)
 - Environment variables with `FORKFORGE_` prefix that override TOML values
@@ -111,8 +115,9 @@ The `config.toml` file is located at the root of the project directory:
 ```
 forkforge/
 ├── config.toml         # Main configuration file
-├── forkforge-api/
-├── forkforge-cli/
+├── crates/
+│   ├── api/
+│   ├── cli/
 └── ...
 ```
 
@@ -160,7 +165,7 @@ All configuration values can be overridden via environment variables with `FORKF
 - `FORKFORGE_STRIPE_WEBHOOK_SECRET` - Stripe webhook secret
 - `FORKFORGE_API_TIMEOUT_SECONDS` - API request timeout
 
-### forkforge-config Library Structure
+### config Library Structure
 
 ```rust
 Config {
@@ -206,7 +211,7 @@ The library provides:
 
 ## Key APIs
 
-### forkforge-api endpoints
+### api endpoints
 
 - `GET /health`: Health check - returns `{"data": "Ok"}`
 - `POST /sessions`: Create new fork session (stub)
@@ -238,10 +243,10 @@ Both projects reference these with `workspace = true`.
 - **Authentication**: Stripe webhook validation implemented (HMAC-SHA256)
 - **State Management**: Future ZFS snapshot integration planned
 - **Performance**: Target <10s fork creation time
-- **Configuration**: Figment-based hierarchical configuration via `forkforge-config` library with profile support
+- **Configuration**: Figment-based hierarchical configuration via `config` library with profile support
 - **Async Runtime**: Tokio with full features across both projects
 - **Error Handling**: Explicit `Result` types throughout
-- **Config Library**: `forkforge-config` provides centralized configuration with profile-based TOML files and environment variable overrides
+- **Config Library**: `config` provides centralized configuration with profile-based TOML files and environment variable overrides
 
 ## TODO Integration
 
@@ -269,7 +274,7 @@ Both projects reference these with `workspace = true`.
 
 ## Recent Changes
 
-- Added `forkforge-config` library as a new workspace member for centralized configuration
+- Added `config` library as a new workspace member for centralized configuration
 - Implemented figment-based hierarchical configuration with profile support
 - Created `config.toml` with default and production profiles
 - Profile selection via `FORKFORGE_PROFILE` environment variable
@@ -280,7 +285,7 @@ Both projects reference these with `workspace = true`.
 
 The project now has a fully functional configuration system:
 
-- `forkforge-config` library implements figment for hierarchical configuration
+- `config` library implements figment for hierarchical configuration
 - Supports profile-based configuration (default, prod, etc.) via `config.toml`
 - Environment variables override TOML values for flexibility
 - API and CLI projects can integrate by using `forkforge_config::Config::load()`

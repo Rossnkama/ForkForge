@@ -1,4 +1,4 @@
-use forkforge_config::Config;
+use common::Config;
 use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;

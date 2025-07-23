@@ -10,9 +10,11 @@ ForkForge is an open-source Rust CLI that creates state-accurate Solana mainnet 
 
 ```
 forkforge/
-├── forkforge-api/      # Axum-based API server
-├── forkforge-cli/      # Rust CLI tool
-├── forkforge-config/   # Shared configuration library
+├── crates/
+│   ├── api/         # Axum-based API server
+│   ├── cli/         # Rust CLI tool
+│   ├── config/      # Shared configuration library
+│   └── models/      # Shared data models
 ├── forkforge-bruno/    # API testing collection
 ├── .env.example        # Example environment variables
 └── Cargo.toml          # Workspace root with shared dependencies
@@ -23,7 +25,7 @@ forkforge/
 - **Workspace Structure**: Rust workspace with shared dependencies (tokio, serde, figment)
 - **API Server**: Axum-based REST API for session management, snapshots, and billing
 - **CLI Tool**: Command-line interface for launching forked validators
-- **Configuration Library**: Shared configuration module (forkforge-config) with figment-based hierarchical configuration
+- **Configuration Library**: Shared configuration module (config) with figment-based hierarchical configuration
 - **Configuration**: Profile-based configuration via `config.toml` with environment variable overrides
 
 ### Diagram
@@ -38,7 +40,7 @@ forkforge/
 ### Running the API Server
 
 ```bash
-cargo run --bin forkforge-api
+cargo run --bin api
 ```
 
 Starts HTTP server on `http://127.0.0.1:3000`
@@ -53,7 +55,7 @@ Available endpoints:
 ### Running the CLI
 
 ```bash
-cargo run --bin forkforge-cli -- up
+cargo run --bin cli -- up
 ```
 
 ## Configuration
@@ -134,10 +136,10 @@ For development with auto-rebuild:
 
 ```bash
 # Watch and run the API server
-cargo watch -x "run --bin forkforge-api"
+cargo watch -x "run --bin api"
 
 # Watch and run the CLI
-cargo watch -x "run --bin forkforge-cli"
+cargo watch -x "run --bin cli"
 ```
 
 ## Shared Dependencies
@@ -158,7 +160,7 @@ Bruno collection available in `forkforge-bruno/` for testing API endpoints.
 - [ ] Account cloning from RPC
 - [ ] Time-travel snapshot system
 - [ ] Complete CLI commands beyond `up`
-- [ ] Integrate forkforge-config library into API and CLI
+- [ ] Integrate config library into API and CLI
 - [ ] Stripe webhook validation
 - [ ] ZFS snapshot integration
 - [ ] Kubernetes deployment

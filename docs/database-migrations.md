@@ -7,7 +7,7 @@
 We now have a dead-simple migration runner that's only 8 lines of code:
 
 ```bash
-cd forkforge-api
+cd crates/api
 cargo run --bin migrate
 ```
 
@@ -19,7 +19,7 @@ That's it! This command:
 
 ### How It Works
 
-The migration runner (`forkforge-api/src/bin/migrate.rs`) is incredibly simple:
+The migration runner (`crates/api/src/bin/migrate.rs`) is incredibly simple:
 
 ```rust
 use sqlx::sqlite::SqlitePool;
@@ -87,10 +87,10 @@ sqlx migrate run
 
 ### Legacy Database Initialization Tool
 
-We still have the more complex `forkforge-db-init` tool that shows detailed information:
+We still have the more complex `db-init` tool that shows detailed information:
 
 ```bash
-cargo run --bin forkforge-db-init
+cargo run --bin db-init
 ```
 
 This tool:

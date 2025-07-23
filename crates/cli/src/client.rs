@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use forkforge_models::{
+use common::{
     CheckUserAuthorisedResponse, DeviceCodeResponse, GitHubUser, PollAuthorizationRequest,
 };
 
@@ -85,31 +85,6 @@ async fn poll_for_authorization(
         .map_err(|e| format!("Failed to parse auth response JSON: {}\nBody: {}", e, body))?;
 
     Ok(auth_response)
-}
-
-/// Complete the login flow by registering the user with our API
-async fn complete_login(
-    config: &ClientConfig,
-    access_token: &str,
-) -> Result<CheckUserAuthorisedResponse, Box<dyn std::error::Error>> {
-    let login_url = format!("{}/auth/github-login", config.api_base_url);
-
-    let login_resp = config
-        .http_client
-        .post(&login_url)
-        .json(&serde_json::json!({
-            "access_token": access_token
-        }))
-        .send()
-        .await
-        .map_err(|e| format!("Failed to login at {}: {}", login_url, e))?;
-
-    let login_response = login_resp
-        .json::<CheckUserAuthorisedResponse>()
-        .await
-        .map_err(|e| format!("Failed to parse login response JSON: {}", e))?;
-
-    Ok(login_response)
 }
 
 /// Handle the GitHub OAuth login flow

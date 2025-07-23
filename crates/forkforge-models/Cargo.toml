@@ -1,8 +1,0 @@
-[package]
-name = "forkforge-models"
-version = "0.1.0"
-edition = "2024"
-description = "Shared data models for ForkForge API and CLI"
-
-[dependencies]
-serde = { workspace = true }

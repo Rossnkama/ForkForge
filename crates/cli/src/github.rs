@@ -1,6 +1,6 @@
 use arboard::Clipboard;
 use colored::*;
-use forkforge_models::{DeviceCodeResponse, GitHubUser};
+use common::{DeviceCodeResponse, GitHubUser};
 use serde::Deserialize;
 use std::io::{self, Write};
 
