@@ -1,3 +1,28 @@
+/// HTTP adapter for GitHub device flow initiation.
+///
+/// These HTTP endpoint handlers demonstrates the adapter pattern - translating between:
+/// - **HTTP Layer**: Axum's State extractor, JSON responses, HTTP status codes
+/// - **Domain Layer**: Pure business logic with no web framework dependencies
+///
+/// # Architecture Pattern
+///
+/// ```text
+/// CLI Request → [Axum Handler] → Domain Service → Infrastructure Service → GitHub API
+///                     ↓               ↓                      ↓
+///              (thin adapter) (business logic - BL)    (BL implementation)
+/// ```
+///
+/// The handler is intentionally thin - it only:
+/// 1. Extracts the domain service from Axum state
+/// 2. Calls the domain method (no parameters needed for device flow)
+/// 3. Maps the domain response to HTTP JSON response
+/// 4. Converts domain errors to HTTP status codes
+///
+/// # Benefits
+///
+/// - **Framework Independence**: Could swap Axum for Actix without touching domain
+/// - **Testability**: Domain logic testable without spinning up HTTP server
+/// - **Single Responsibility**: HTTP concerns stay in API layer only
 use common::{
     CheckUserAuthorisedResponse, DeviceCodeResponse, GitHubUser, PollAuthorizationRequest,
 };
@@ -33,52 +58,9 @@ impl IntoResponse for ApiError {
     }
 }
 
-#[debug_handler]
-pub(crate) async fn check_user_authorised(
-    State(state): State<AppState>,
-    Json(poll_request): Json<PollAuthorizationRequest>,
-) -> Result<Json<CheckUserAuthorisedResponse>, ApiError> {
-    let access_token = state
-        .github_auth_service
-        .wait_for_authorization(&poll_request.device_code)
-        .await?;
-
-    // Create response with the access token
-    let response = CheckUserAuthorisedResponse {
-        access_token,
-        _token_type: "bearer".to_string(),
-        _scope: "user".to_string(),
-    };
-
-    println!("Authentication successful, Token: {response:?}");
-    Ok(Json(response))
-}
-
-/// HTTP adapter for GitHub device flow initiation.
+/// Step 1: Initiate device flow
+/// This takes no parameters and returns a device code that maps to the user's auth attempt.
 ///
-/// This handler demonstrates the adapter pattern - translating between:
-/// - **HTTP Layer**: Axum's State extractor, JSON responses, HTTP status codes
-/// - **Domain Layer**: Pure business logic with no web framework dependencies
-///
-/// # Architecture Pattern
-///
-/// ```text
-/// CLI Request → Axum Handler → Domain Service → GitHub API
-///                    ↓               ↓
-///              (thin adapter)   (business logic)
-/// ```
-///
-/// The handler is intentionally thin - it only:
-/// 1. Extracts the domain service from Axum state
-/// 2. Calls the domain method (no parameters needed for device flow)
-/// 3. Maps the domain response to HTTP JSON response
-/// 4. Converts domain errors to HTTP status codes
-///
-/// # Benefits
-///
-/// - **Framework Independence**: Could swap Axum for Actix without touching domain
-/// - **Testability**: Domain logic testable without spinning up HTTP server
-/// - **Single Responsibility**: HTTP concerns stay in API layer only
 #[debug_handler]
 pub(crate) async fn github_create_user_device_session(
     State(state): State<AppState>,
@@ -101,6 +83,32 @@ pub(crate) async fn github_create_user_device_session(
     Ok(Json(response))
 }
 
+/// Step 2: Poll for user authorization
+/// Takes device code (code that maps from the oauth app to the user's auth attempt)
+/// and polls for the user's authorization status. (If they've authorized on web)
+#[debug_handler]
+pub(crate) async fn check_user_authorised(
+    State(state): State<AppState>,
+    Json(poll_request): Json<PollAuthorizationRequest>,
+) -> Result<Json<CheckUserAuthorisedResponse>, ApiError> {
+    let access_token = state
+        .github_auth_service
+        .wait_for_authorization(&poll_request.device_code)
+        .await?;
+
+    // Create response with the access token
+    let response = CheckUserAuthorisedResponse {
+        access_token,
+        _token_type: "bearer".to_string(),
+        _scope: "user".to_string(),
+    };
+
+    println!("Authentication successful, Token: {response:?}");
+    Ok(Json(response))
+}
+
+/// Step 3: Get user details
+/// Takes the access token and fetches the user's details from GitHub.
 #[debug_handler]
 pub async fn github_login(
     State(state): State<AppState>,

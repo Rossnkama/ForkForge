@@ -15,6 +15,7 @@
   - [Development Workflow](#development-workflow)
     - [Running the Application](#running-the-application)
     - [Development Mode with Auto-Reload](#development-mode-with-auto-reload)
+    - [Using xtask for Common Operations](#using-xtask-for-common-operations)
     - [Code Quality](#code-quality)
   - [Adding New Features](#adding-new-features)
     - [1. Adding a New Authentication Provider](#1-adding-a-new-authentication-provider)
@@ -73,7 +74,7 @@ Before you begin development on ForkForge, ensure you have the following install
    ```bash
    # Copy the example configuration
    cp config.toml.example config.toml
-   
+
    # Edit config.toml with your settings
    # You'll need:
    # - GitHub OAuth App credentials
@@ -85,7 +86,7 @@ Before you begin development on ForkForge, ensure you have the following install
    ```bash
    # Simple migration runner
    cargo run --bin migrate
-   
+
    # Or use the detailed initialization tool
    cargo run --bin db-init
    ```
@@ -95,7 +96,7 @@ Before you begin development on ForkForge, ensure you have the following install
    ```bash
    # Run all tests
    cargo test
-   
+
    # Check code compilation
    cargo check
    ```
@@ -110,11 +111,13 @@ forkforge/
 ├── config.toml             # Application configuration
 ├── migrations/             # SQL migration files
 ├── docs/                   # Documentation
+├── xtask/                  # Development task runner
 └── crates/                 # Rust crates
     ├── domain/            # Business logic
     ├── api/               # HTTP API server
     ├── cli/               # Command-line interface
-    └── common/            # Shared components
+    ├── common/            # Shared components
+    └── infra/             # Infrastructure implementations
 ```
 
 ### Understanding the Crates
@@ -168,6 +171,23 @@ cargo watch -x "run --bin api"
 # Watch and run tests
 cargo watch -x test
 ```
+
+### Using xtask for Common Operations
+
+The project includes an `xtask` crate that provides convenient commands for recurring development tasks:
+
+```bash
+# Run database migrations
+cargo run -p xtask -- migrate
+
+# Start API server in development mode
+cargo run -p xtask -- dev
+
+# Run API in watch mode (requires cargo-watch)
+cargo run -p xtask -- watch
+```
+
+The xtask pattern keeps development scripts in Rust rather than shell scripts, ensuring cross-platform compatibility and type safety.
 
 ### Code Quality
 
@@ -266,8 +286,8 @@ Some(Commands::Status) => {
 # Add timestamp-prefixed migration file
 echo "CREATE TABLE analytics (...);" > migrations/$(date +%Y%m%d)_000001_add_analytics.sql
 
-# Run migrations
-cargo run --bin migrate
+# Run migrations (using xtask)
+cargo run -p xtask -- migrate
 ```
 
 ### Database Schema Guidelines
@@ -292,7 +312,7 @@ mod tests {
             Uuid::new_v4(),
             "test-session".to_string()
         ).await.unwrap();
-        
+
         assert_eq!(session.status, SessionStatus::Starting);
     }
 }
@@ -317,7 +337,7 @@ use mockall::mock;
 
 mock! {
     StripeClient {}
-    
+
     impl StripeClient for StripeClient {
         async fn create_subscription(&self, user_id: &str) -> Result<Subscription, Error>;
     }
@@ -377,7 +397,7 @@ impl IntoResponse for ApiError {
             DomainError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string()),
         };
-        
+
         (status, Json(json!({ "error": message }))).into_response()
     }
 }
