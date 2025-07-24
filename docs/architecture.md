@@ -36,39 +36,39 @@ ForkForge follows Clean Architecture principles to ensure maintainability, testa
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        CLI Layer                             │
-│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Command Parser  │  │ API Client   │  │ UI/Display   │  │
-│  └─────────────────┘  └──────────────┘  └──────────────┘  │
+│                        CLI Layer                            │
+│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ Command Parser  │  │ API Client   │  │ UI/Display   │    │
+│  └─────────────────┘  └──────────────┘  └──────────────┘    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                        API Layer                             │
-│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ HTTP Routes     │  │ Middleware   │  │ Adapters     │  │
-│  └─────────────────┘  └──────────────┘  └──────────────┘  │
+│                        API Layer                            │
+│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ HTTP Routes     │  │ Middleware   │  │ Adapters     │    │
+│  └─────────────────┘  └──────────────┘  └──────────────┘    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      Domain Layer                            │
-│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Models          │  │ Services     │  │ Repositories │  │
-│  │ - User          │  │ - Auth       │  │ (Traits)     │  │
-│  │ - Session       │  │ - Forking    │  └──────────────┘  │
-│  │ - Snapshot      │  │ - Billing    │                     │
-│  │ - Subscription  │  │ - Snapshots  │                     │
-│  └─────────────────┘  └──────────────┘                     │
+│                      Domain Layer                           │
+│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ Models          │  │ Services     │  │ Repositories │    │
+│  │ - User          │  │ - Auth       │  │ (Traits)     │    │
+│  │ - Session       │  │ - Forking    │  └──────────────┘    │
+│  │ - Snapshot      │  │ - Billing    │                      │
+│  │ - Subscription  │  │ - Snapshots  │                      │
+│  └─────────────────┘  └──────────────┘                      │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Infrastructure                            │
-│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Database        │  │ External APIs│  │ File System  │  │
-│  │ (SQLite/PG)     │  │ (GitHub,     │  │ (Snapshots)  │  │
-│  └─────────────────┘  │  Stripe)     │  └──────────────┘  │
+│                    Infrastructure                           │
+│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ Database        │  │ External APIs│  │ File System  │    │
+│  │ (SQLite/PG)     │  │ (GitHub,     │  │ (Snapshots)  │    │
+│  └─────────────────┘  │  Stripe)     │  └──────────────┘    │
 │                       └──────────────┘                      │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -114,7 +114,8 @@ Provides command-line interface for users.
 - Command parsing and validation
 - User interaction and prompts
 - Display formatting
-- API client implementation
+- Uses domain services directly via dependency injection
+- Infrastructure adapters for domain contracts (e.g., HTTP client)
 
 ### Common Layer (`crates/common/`)
 

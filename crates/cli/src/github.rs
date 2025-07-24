@@ -1,10 +1,9 @@
 use arboard::Clipboard;
 use colored::*;
 use common::DeviceCodeResponse;
+use domain::services::auth::internal_api::InternalApiService;
 use domain::services::auth::types::GitHubUser;
 use std::io::{self, Write};
-
-use crate::client_config::ClientConfig;
 
 /// Display the authentication header and separator
 fn display_auth_header() {
@@ -136,16 +135,19 @@ pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
     }
 }
 
-pub async fn get_user_info(
+/// Get user info through the ForkForge API service
+///
+/// This function now uses the domain service instead of making direct HTTP calls,
+/// following the domain-driven design pattern.
+pub async fn get_user_info<C>(
     access_token: &str,
-    config: &ClientConfig,
-) -> Result<GitHubUser, Box<dyn std::error::Error>> {
-    let url = format!("{}/auth/github-login", config.api_base_url);
-    let response = config
-        .http_client
-        .get(&url)
-        .json(access_token)
-        .send()
-        .await?;
-    Ok(response.json::<GitHubUser>().await?)
+    api_service: &InternalApiService<C>,
+) -> Result<GitHubUser, Box<dyn std::error::Error>>
+where
+    C: domain::services::auth::internal_api::HttpClient,
+{
+    api_service
+        .get_github_user(access_token)
+        .await
+        .map_err(|e| e.into())
 }

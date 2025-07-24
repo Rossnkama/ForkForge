@@ -1,11 +1,14 @@
 use clap::{Parser, Subcommand};
 use common::{CheckUserAuthorisedResponse, DeviceCodeResponse, PollAuthorizationRequest};
+use domain::services::auth::internal_api::InternalApiService;
 use domain::services::auth::types::GitHubUser;
 
 mod client_config;
 mod github;
+mod infrastructure;
 
 use client_config::ClientConfig;
+use infrastructure::http_client::ReqwestAdapter;
 
 /// Simple program to greet a person
 #[derive(Parser)]
@@ -88,6 +91,10 @@ async fn poll_for_authorization(
 
 /// Handle the GitHub OAuth login flow
 async fn handle_login(config: ClientConfig) -> Result<(), Box<dyn std::error::Error>> {
+    // Create domain services with dependency injection
+    let http_adapter = ReqwestAdapter::new(config.http_client.clone());
+    let api_service = InternalApiService::new(config.api_base_url.clone(), http_adapter);
+
     // Step 1: Get device and user verification codes
     let device_auth_data = get_device_code(&config).await?;
 
@@ -97,8 +104,8 @@ async fn handle_login(config: ClientConfig) -> Result<(), Box<dyn std::error::Er
     // Step 3: Poll for user authorization
     let auth_response = poll_for_authorization(&config, device_auth_data.device_code).await?;
 
-    // Step 4: Get user info, Github ID and Username
-    let user: GitHubUser = github::get_user_info(&auth_response.access_token, &config).await?;
+    // Step 4: Get user info using domain service
+    let user: GitHubUser = github::get_user_info(&auth_response.access_token, &api_service).await?;
 
     // Step 5: Write or update the user's entry in the database.
     // TODO: Later, add a new endpoint to securley generate an API token for the user.

@@ -43,6 +43,8 @@
 
 The domain layer contains all business logic for ForkForge, organized into focused services that handle specific business capabilities. Each service is designed to be independent, testable, and free from infrastructure concerns.
 
+These domain services are used by both the API server and CLI through dependency injection, ensuring consistent business logic across all entry points to the system.
+
 ## Service Structure
 
 ### Directory Organization
@@ -273,7 +275,7 @@ mod tests {
 
     mock! {
         HttpClient {}
-        
+
         #[async_trait]
         impl HttpClient for HttpClient {
             async fn post_form(&self, url: &str, body: &str) -> Result<String, DomainError>;

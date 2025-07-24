@@ -71,7 +71,7 @@ The project follows clean architecture principles with clear separation of conce
 
 - **CLI Layer** (`crates/cli/`): Command-line interface
   - User interaction and display logic
-  - API client implementation
+  - Uses domain services directly via dependency injection
 
 - **Common Layer** (`crates/common/`): Shared components
   - Data Transfer Objects (DTOs)

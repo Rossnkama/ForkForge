@@ -54,33 +54,31 @@ pub(crate) async fn check_user_authorised(
     Ok(Json(response))
 }
 
-/// Requests device and user verification codes from GitHub's OAuth device flow.
+/// HTTP adapter for GitHub device flow initiation.
 ///
-/// This is step 1 of the GitHub device flow authentication process.
-/// The CLI calls this to initiate authentication and get codes that the user
-/// will use to authorize the application on GitHub's website.
+/// This handler demonstrates the adapter pattern - translating between:
+/// - **HTTP Layer**: Axum's State extractor, JSON responses, HTTP status codes
+/// - **Domain Layer**: Pure business logic with no web framework dependencies
 ///
-/// # Arguments
+/// # Architecture Pattern
 ///
-/// * `device_code_request_params` - Contains:
-///   - `client_id`: GitHub OAuth app client ID
-///   - `scope`: OAuth scopes string (e.g., "read:user, user:email")
+/// ```text
+/// CLI Request → Axum Handler → Domain Service → GitHub API
+///                    ↓               ↓
+///              (thin adapter)   (business logic)
+/// ```
 ///
-/// # Returns
+/// The handler is intentionally thin - it only:
+/// 1. Extracts the domain service from Axum state
+/// 2. Calls the domain method (no parameters needed for device flow)
+/// 3. Maps the domain response to HTTP JSON response
+/// 4. Converts domain errors to HTTP status codes
 ///
-/// Returns a `DeviceCodeResponse` containing:
-/// - `device_code`: Long code used by the CLI for polling authorization status
-/// - `user_code`: Short code displayed to the user to enter on GitHub
-/// - `verification_uri`: URL where user enters the code (github.com/login/device)
-/// - `expires_in`: How long codes are valid (seconds)
-/// - `interval`: How often to poll for authorization (seconds)
+/// # Benefits
 ///
-/// # Errors
-///
-/// Returns an error if:
-/// - Network request fails
-/// - GitHub returns an error response
-/// - Response parsing fails
+/// - **Framework Independence**: Could swap Axum for Actix without touching domain
+/// - **Testability**: Domain logic testable without spinning up HTTP server
+/// - **Single Responsibility**: HTTP concerns stay in API layer only
 #[debug_handler]
 pub(crate) async fn github_create_user_device_session(
     State(state): State<AppState>,

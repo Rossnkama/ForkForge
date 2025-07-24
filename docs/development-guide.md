@@ -135,7 +135,8 @@ forkforge/
 
 - **Purpose**: Command-line interface
 - **Framework**: Clap
-- **Features**: User prompts, API client, display formatting
+- **Features**: User prompts, domain service integration, display formatting
+- **Architecture**: Uses domain services directly with dependency injection
 
 #### Common Crate
 

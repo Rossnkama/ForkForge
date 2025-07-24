@@ -395,6 +395,7 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "arboard",
+ "async-trait",
  "clap",
  "colored",
  "common",
