@@ -64,28 +64,152 @@ The project follows clean architecture principles with clear separation of conce
   - Models: User, Session, Snapshot, Subscription entities
   - Services: Authentication, Forking, Billing, Snapshots
   - Repository traits for data access abstraction
-  - Defines interfaces for external services (e.g., StripeClient, HttpClient)
+  - Defines interfaces for external services (e.g., StripeClient, DeviceFlowProvider)
+
+```rust
+// Clean: Domain defines the contract, no implementation details
+pub trait DeviceFlowProvider: Send + Sync {
+    async fn request_device_code(&self) -> Result<DeviceCodeResponse, DomainError>;
+    async fn poll_authorization(&self, device_code: &str) -> Result<String, AuthError>;
+}
+
+// Without this layer: Business logic mixed with HTTP calls
+pub async fn authenticate_user(client: &reqwest::Client) {
+    // ❌ Domain logic coupled to HTTP library
+    let response = client.post("https://github.com/login/device/code")
+        .form(&[("client_id", "abc123")])
+        .send().await?;
+    // ❌ GitHub URLs hardcoded in business logic
+}
+```
 
 - **Infrastructure Layer** (`crates/infra/`): Implementation of domain interfaces
   - Database repository implementations (SQLx-based)
-  - HTTP client adapters (GitHub, internal API)
-  - External service integrations (Stripe SDK)
+  - `GitHubHttpClient` for HTTP operations
+  - `GitHubDeviceFlowProvider` for OAuth device flow
+  - External service integrations (`StripeSdk`)
+  - Single `MIGRATOR` source for all database migrations
   - Provides `ServerInfra` façade for server-side services
   - Provides `ClientInfra` façade for client-safe services
+
+```rust
+// Clean: Infrastructure implements domain traits (actual from crates/infra/src/github_device_flow.rs)
+impl DeviceFlowProvider for GitHubDeviceFlowProvider {
+    async fn request_device_code(&self) -> Result<DeviceCodeResponse, DomainError> {
+        let request = DeviceCodeRequest {
+            client_id: self.client_id.clone(),
+            scope: "user".to_owned(),
+        };
+
+        let body = serde_urlencoded::to_string(&request)
+            .map_err(|e| DomainError::Internal(format!("Failed to serialize: {e}")))?;
+
+        // All GitHub-specific details (URLs, headers) handled here
+        let response_text = self.http_client
+            .post_form(GITHUB_DEVICE_CODE_REQUEST_URL, &body)
+            .await?;
+
+        serde_json::from_str(&response_text)
+            .map_err(|e| DomainError::ExternalService(format!("Failed to parse: {e}")))
+    }
+}
+
+// Without this layer: GitHub details spread everywhere
+pub async fn get_device_code(client_id: String) {
+    // ❌ Hardcoded URLs in business logic
+    let url = "https://github.com/login/device/code";
+    // ❌ HTTP details mixed with domain logic
+    // ❌ No reusable HTTP client with connection pooling
+}
+```
 
 - **API Layer** (`crates/api/`): HTTP server implementation
   - Axum-based REST API
   - Uses `ServerInfra` for all infrastructure needs
   - Handles HTTP routing and request/response transformation
 
+```rust
+// Clean: API layer only handles HTTP concerns (actual code from crates/api/src/github.rs)
+pub async fn github_create_user_device_session(
+    State(state): State<AppState>,
+) -> Result<Json<DeviceCodeResponse>, StatusCode> {
+    let domain_response = state
+        .github_auth_service
+        .request_device_code()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(domain_response))
+}
+
+// Without this layer: Business logic mixed with HTTP
+async fn github_login() {
+    // ❌ Direct GitHub API calls in handler
+    let response = reqwest::Client::new()
+        .post("https://github.com/login/device/code")
+        .form(&[("client_id", "abc123")])
+        .send().await?;
+    // ❌ Parsing and error handling mixed with HTTP routing
+}
+```
+
 - **CLI Layer** (`crates/cli/`): Command-line interface
   - User interaction and display logic
   - Uses `ClientInfra` for GitHub authentication
   - Maintains its own HTTP client for API communication
 
+```rust
+// Clean: CLI uses safe client infrastructure (actual code from crates/cli/src/client.rs)
+async fn handle_login(config: ClientConfig) -> Result<(), Box<dyn std::error::Error>> {
+    // Step 1: Get device code via API (no direct GitHub access)
+    let device_auth_data = get_device_code(&config).await?;
+
+    // Step 2: Show user where to authenticate
+    github::prompt_user_to_verify(&device_auth_data).await;
+
+    // Step 3: Poll API server (which handles the OAuth flow)
+    let auth_response = poll_for_authorization(&config, device_auth_data.device_code).await?;
+
+    // Step 4: Get user info (actual code continues...)
+    let user: GitHubUser = github::get_user_info(&auth_response.access_token, &api_service).await?;
+    println!("Logging in to user {}... who has ID {}", user.login, user.id);
+}
+
+// Without this layer: CLI directly accesses sensitive resources
+async fn handle_login() {
+    // ❌ Direct database access in CLI
+    let pool = SqlitePool::connect("sqlite:./prod.db").await?;
+    // ❌ Stripe secrets in client binary
+    let stripe_key = std::env::var("STRIPE_SECRET_KEY")?;
+}
+```
+
 - **Common Layer** (`crates/common/`): Shared components
   - Data Transfer Objects (DTOs)
   - Configuration management with Figment
+
+```rust
+// Clean: Shared DTOs used across all layers (actual from crates/common/src/github.rs)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceCodeResponse {
+    /// Code used to poll for access token
+    pub device_code: String,
+    /// Short code shown to user (e.g., "ABCD-1234")
+    pub user_code: String,
+    /// URL where user enters the user_code
+    pub verification_uri: String,
+    #[serde(rename = "expires_in")]
+    pub _expires_in: u32,
+    #[serde(rename = "interval")]
+    pub _interval: u32,
+}
+
+// Without this layer: Duplicate type definitions
+// ❌ API defines: struct ApiDeviceCode { device_code: String, ... }
+// ❌ CLI defines: struct CliDeviceResponse { code: String, ... }
+// ❌ Domain defines: struct DeviceCodeEntity { id: Uuid, code: String, ... }
+// ❌ Endless conversion code between incompatible types
+```
 
 ### Key Features
 
@@ -245,9 +369,11 @@ sqlx migrate add <migration_name>
 
 ### Authentication Service
 
-- GitHub OAuth device flow implementation
+- Clean architecture with `DeviceFlowProvider` trait in domain
+- `GitHubDeviceFlowProvider` implementation in infrastructure
+- Domain service (`AuthService`) orchestrates authentication flows
 - Extensible design for additional providers (Google, etc.)
-- Token management and user authentication
+- Complete separation of business logic from OAuth implementation details
 
 ### Forking Service (Coming Soon)
 

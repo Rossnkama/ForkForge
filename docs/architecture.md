@@ -39,7 +39,7 @@ ForkForge follows Clean Architecture principles to ensure maintainability, testa
 ┌─────────────────────────────────────────────────────────────┐
 │                        CLI Layer                            │
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │ Command Parser  │  │ API Client   │  │ UI/Display   │    │
+│  │ Command Parser  │  │ API Client   │  │ UI/Display   │    │  <- The CLI (Client)
 │  └─────────────────┘  └──────────────┘  └──────────────┘    │
 │                     Uses ClientInfra                        │
 └─────────────────────────────────────────────────────────────┘
@@ -48,7 +48,7 @@ ForkForge follows Clean Architecture principles to ensure maintainability, testa
 ┌─────────────────────────────────────────────────────────────┐
 │                        API Layer                            │
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │ HTTP Routes     │  │ Middleware   │  │ Handlers     │    │
+│  │ HTTP Routes     │  │ Middleware   │  │ Handlers     │    │  <- The API (Server)
 │  └─────────────────┘  └──────────────┘  └──────────────┘    │
 │                     Uses ServerInfra                        │
 └─────────────────────────────────────────────────────────────┘
@@ -59,7 +59,7 @@ ForkForge follows Clean Architecture principles to ensure maintainability, testa
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
 │  │ Models          │  │ Services     │  │ Repositories │    │
 │  │ - User          │  │ - Auth       │  │ (Traits)     │    │
-│  │ - Session       │  │ - Forking    │  │              │    │
+│  │ - Session       │  │ - Forking    │  │              │    │  <- Traits for Domain logic
 │  │ - Snapshot      │  │ - Billing    │  │ External     │    │
 │  │ - Subscription  │  │ - Snapshots  │  │ Interfaces   │    │
 │  └─────────────────┘  └──────────────┘  └──────────────┘    │
@@ -70,14 +70,16 @@ ForkForge follows Clean Architecture principles to ensure maintainability, testa
 │                  Infrastructure Layer (infra)               │
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
 │  │ Database (db)   │  │ HTTP Clients │  │ External     │    │
-│  │ - DbRepo        │  │ - GitHub     │  │ Services     │    │
-│  │ - Migrations    │  │   Adapter    │  │ - StripeSdk  │    │
-│  └─────────────────┘  └──────────────┘  │ - Helius*    │    │
-│                                         └──────────────┘    │
+│  │ - DbRepo        │  │ - GitHubHttp │  │ Services     │    │
+│  │ - MIGRATOR      │  │   Client     │  │ - StripeSdk  │    │  <- Implementation of the Domain
+│  │                 │  │ - GitHub     │  │ - Helius*    │    │     via bespoke services clients etc...
+│  │                 │  │   DeviceFlow │  │              │    │
+│  │                 │  │   Provider   │  │              │    │
+│  └─────────────────┘  └──────────────┘  └──────────────┘    │
 │  ┌────────────────────────────────────────────────────┐     │
 │  │ Façade Pattern:                                    │     │
-│  │ - ServerInfra (contains secrets, server-only)      │     │
-│  │ - ClientInfra (no secrets, safe for CLI)           │     │
+│  │ - ServerInfra (contains secrets, server-only)      │     │  <- Top level abstractions for infra
+│  │ - ClientInfra (no secrets, safe for CLI)           │     │     wraps all services under one flow
 │  └────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -98,8 +100,9 @@ The heart of the application containing all business logic and rules.
 **Components:**
 
 - **Models**: Entity definitions (User, Session, Snapshot, etc.)
-- **Services**: Business logic implementation
+- **Services**: Business logic implementation with pure domain services
 - **Repository Traits**: Interfaces for data persistence
+- **Provider Traits**: Interfaces for external services (e.g., DeviceFlowProvider)
 - **Errors**: Domain-specific error types
 
 ### Infrastructure Layer (`crates/infra/`)
@@ -109,16 +112,17 @@ Implements all domain-defined interfaces for external services and data persiste
 **Responsibilities:**
 
 - Database operations via `DbRepo`
-- HTTP client implementations (`GitHubAdapter`)
+- HTTP client implementations (`GitHubHttpClient`)
+- OAuth provider implementations (`GitHubDeviceFlowProvider`)
 - External service integrations (`StripeSdk`)
-- Migration management
+- Migration management via single `MIGRATOR` constant
 
 **Security Architecture:**
 
 - **ServerInfra**: Contains all services including sensitive ones (database, Stripe secrets)
   - Used only by the API server
   - Contains credentials and API keys
-- **ClientInfra**: Contains only client-safe services (GitHub adapter)
+- **ClientInfra**: Contains only client-safe services (`GitHubHttpClient`)
   - Safe for CLI and distributed binaries
   - No server secrets
 

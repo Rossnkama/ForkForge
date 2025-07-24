@@ -17,36 +17,50 @@
 
 ## Running SQLx Migrations with SQLite
 
-### Quick Start - Super Simple Migration Runner (NEW)
+### Quick Start - Migration Management
 
-We now have a dead-simple migration runner that's only 8 lines of code:
+All migrations are managed through a single `MIGRATOR` constant defined in `crates/infra/src/db.rs`. This ensures consistent migration paths across all binaries.
 
 ```bash
-cd crates/api
+# Simple migration runner
 cargo run --bin migrate
+
+# Or use the detailed initialization tool
+cargo run --bin db-init
 ```
 
-That's it! This command:
+Both commands:
 
-- Connects to the SQLite database (creates it if missing)
-- Runs all pending migrations from the `migrations/` folder
-- Only applies new migrations (idempotent - safe to run multiple times)
+- Use the same `infra::MIGRATOR` constant
+- Connect to the SQLite database (create if missing)
+- Run all pending migrations from the `migrations/` folder
+- Are idempotent (safe to run multiple times)
 
 ### How It Works
 
-The migration runner (`crates/api/src/bin/migrate.rs`) is incredibly simple:
+The migration system uses a centralized approach:
 
-```rust
-use sqlx::sqlite::SqlitePool;
+1. **Single MIGRATOR Source**: Defined in `crates/infra/src/db.rs`:
+   ```rust
+   pub static MIGRATOR: Migrator = sqlx::migrate!("../../migrations");
+   ```
 
-#[tokio::main]
-async fn main() -> Result<(), sqlx::Error> {
-    let pool = SqlitePool::connect("sqlite:./forkforge_dev.db?mode=rwc").await?;
-    sqlx::migrate!("../migrations").run(&pool).await?;
-    println!("✅ Migrations applied");
-    Ok(())
-}
-```
+2. **Migration Runner** (`crates/api/src/bin/migrate.rs`):
+   ```rust
+   use infra::db::init_db;
+   
+   #[tokio::main]
+   async fn main() -> Result<(), Box<dyn std::error::Error>> {
+       let pool = init_db("sqlite:./forkforge_dev.db?mode=rwc").await?;
+       pool.close().await;
+       println!("✅ Script ran");
+       Ok(())
+   }
+   ```
+
+3. **DB Init Tool** (`crates/api/src/bin/db_init.rs`):
+   - Uses `infra::MIGRATOR`
+   - Provides detailed output about tables and migrations
 
 ### Creating New Migrations
 
