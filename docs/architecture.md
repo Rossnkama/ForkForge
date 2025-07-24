@@ -6,6 +6,7 @@
   - [Architecture Diagram](#architecture-diagram)
   - [Layer Responsibilities](#layer-responsibilities)
     - [Domain Layer (`crates/domain/`)](#domain-layer-cratesdomain)
+    - [Infrastructure Layer (`crates/infra/`)](#infrastructure-layer-cratesinfra)
     - [API Layer (`crates/api/`)](#api-layer-cratesapi)
     - [CLI Layer (`crates/cli/`)](#cli-layer-cratescli)
     - [Common Layer (`crates/common/`)](#common-layer-cratescommon)
@@ -40,14 +41,16 @@ ForkForge follows Clean Architecture principles to ensure maintainability, testa
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
 │  │ Command Parser  │  │ API Client   │  │ UI/Display   │    │
 │  └─────────────────┘  └──────────────┘  └──────────────┘    │
+│                     Uses ClientInfra                        │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        API Layer                            │
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │ HTTP Routes     │  │ Middleware   │  │ Adapters     │    │
+│  │ HTTP Routes     │  │ Middleware   │  │ Handlers     │    │
 │  └─────────────────┘  └──────────────┘  └──────────────┘    │
+│                     Uses ServerInfra                        │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -56,20 +59,26 @@ ForkForge follows Clean Architecture principles to ensure maintainability, testa
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
 │  │ Models          │  │ Services     │  │ Repositories │    │
 │  │ - User          │  │ - Auth       │  │ (Traits)     │    │
-│  │ - Session       │  │ - Forking    │  └──────────────┘    │
-│  │ - Snapshot      │  │ - Billing    │                      │
-│  │ - Subscription  │  │ - Snapshots  │                      │
-│  └─────────────────┘  └──────────────┘                      │
+│  │ - Session       │  │ - Forking    │  │              │    │
+│  │ - Snapshot      │  │ - Billing    │  │ External     │    │
+│  │ - Subscription  │  │ - Snapshots  │  │ Interfaces   │    │
+│  └─────────────────┘  └──────────────┘  └──────────────┘    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Infrastructure                           │
+│                  Infrastructure Layer (infra)               │
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │ Database        │  │ External APIs│  │ File System  │    │
-│  │ (SQLite/PG)     │  │ (GitHub,     │  │ (Snapshots)  │    │
-│  └─────────────────┘  │  Stripe)     │  └──────────────┘    │
-│                       └──────────────┘                      │
+│  │ Database (db)   │  │ HTTP Clients │  │ External     │    │
+│  │ - DbRepo        │  │ - GitHub     │  │ Services     │    │
+│  │ - Migrations    │  │   Adapter    │  │ - StripeSdk  │    │
+│  └─────────────────┘  └──────────────┘  │ - Helius*    │    │
+│                                         └──────────────┘    │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │ Façade Pattern:                                    │     │
+│  │ - ServerInfra (contains secrets, server-only)      │     │
+│  │ - ClientInfra (no secrets, safe for CLI)           │     │
+│  └────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -93,6 +102,26 @@ The heart of the application containing all business logic and rules.
 - **Repository Traits**: Interfaces for data persistence
 - **Errors**: Domain-specific error types
 
+### Infrastructure Layer (`crates/infra/`)
+
+Implements all domain-defined interfaces for external services and data persistence.
+
+**Responsibilities:**
+
+- Database operations via `DbRepo`
+- HTTP client implementations (`GitHubAdapter`)
+- External service integrations (`StripeSdk`)
+- Migration management
+
+**Security Architecture:**
+
+- **ServerInfra**: Contains all services including sensitive ones (database, Stripe secrets)
+  - Used only by the API server
+  - Contains credentials and API keys
+- **ClientInfra**: Contains only client-safe services (GitHub adapter)
+  - Safe for CLI and distributed binaries
+  - No server secrets
+
 ### API Layer (`crates/api/`)
 
 Handles HTTP communication and adapts external requests to domain operations.
@@ -102,8 +131,8 @@ Handles HTTP communication and adapts external requests to domain operations.
 - HTTP routing and middleware
 - Request/response serialization
 - Authentication and authorization
-- Adapting domain services for HTTP
-- Implementing repository traits
+- Uses `ServerInfra` for all infrastructure needs
+- Coordinates domain services
 
 ### CLI Layer (`crates/cli/`)
 
@@ -114,8 +143,8 @@ Provides command-line interface for users.
 - Command parsing and validation
 - User interaction and prompts
 - Display formatting
-- Uses domain services directly via dependency injection
-- Infrastructure adapters for domain contracts (e.g., HTTP client)
+- Uses `ClientInfra` for GitHub authentication
+- Maintains separate HTTP client for API communication
 
 ### Common Layer (`crates/common/`)
 
@@ -134,14 +163,19 @@ Shared components used across layers.
 ```
 domain/services/auth/
 ├── mod.rs          # Public interface
-├── types.rs        # Shared auth types
-└── github.rs       # GitHub OAuth implementation
+├── types.rs        # Shared auth types  
+└── github.rs       # Domain authentication service and traits
+
+infra/src/
+├── github_device_flow.rs  # GitHub OAuth implementation
+└── github.rs             # HTTP adapter
 ```
 
 **Design Principles:**
 
-- Each auth provider gets its own module
-- Shared types in `types.rs`
+- Domain defines the `DeviceFlowProvider` trait
+- Infrastructure implements provider-specific logic
+- Complete separation of business rules from OAuth details
 - Easy to add new providers (Google, Twitter, etc.)
 
 ### Complex Services Pattern
@@ -161,35 +195,64 @@ domain/services/forking/
 ```
 CLI ──depends on──> Domain <──depends on── API
  │                     ▲                    │
- └──────depends on─────┴─────depends on────┘
-                    Common
+ │                     │                    │
+ └──────depends on─────┴─────depends on─────┘
+            Common     │
+                       │
+                    Infra
+                  implements
+               domain interfaces
 ```
 
 **Key Points:**
 
 - Domain has no dependencies on infrastructure
-- API and CLI depend on Domain
+- Infrastructure implements domain-defined interfaces
+- API uses ServerInfra, CLI uses ClientInfra
 - All layers can use Common
-- Dependency inversion: Domain defines interfaces, others implement
+- Dependency inversion: Domain defines interfaces, infra implements
 
 ## Repository Pattern
 
-The domain defines repository traits that the API layer implements:
+The domain defines repository traits that the infrastructure layer implements:
 
 ```rust
-// Domain defines the interface
+// Domain defines the interface (domain/src/repositories.rs)
 pub trait UserRepository: Send + Sync {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError>;
     async fn create(&self, user: &User) -> Result<User, DomainError>;
 }
 
-// API provides the implementation
-struct SqlxUserRepository {
+// Infrastructure provides the implementation (infra/src/db.rs)
+pub struct DbRepo {
     pool: SqlitePool,
 }
 
-impl UserRepository for SqlxUserRepository {
-    // Implementation details...
+impl UserRepository for DbRepo {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
+        // SQLx implementation details...
+    }
+}
+```
+
+The same pattern applies to external services:
+
+```rust
+// Domain defines what it needs (domain/src/services/auth/github.rs)
+pub trait DeviceFlowProvider: Send + Sync {
+    async fn request_device_code(&self) -> Result<DeviceCodeResponse, DomainError>;
+    async fn poll_authorization(&self, device_code: &str) -> Result<String, AuthError>;
+    async fn get_user(&self, access_token: &str) -> Result<GitHubUser, DomainError>;
+}
+
+// Infrastructure provides the implementation (infra/src/github_device_flow.rs)
+pub struct GitHubDeviceFlowProvider {
+    client_id: String,
+    http_client: GitHubAdapter,
+}
+
+impl DeviceFlowProvider for GitHubDeviceFlowProvider {
+    // GitHub-specific OAuth implementation...
 }
 ```
 

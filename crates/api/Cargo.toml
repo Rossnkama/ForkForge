@@ -16,19 +16,12 @@ name = "migrate"
 path = "src/bin/migrate.rs"
 
 [dependencies]
-async-trait = "0.1"
-axum = { version = "0.8.4", features = ["macros"] }
+async-trait = { workspace = true }
+axum = { version = "0.8", features = ["macros"] }
 common = { path = "../common" }
 domain = { path = "../domain" }
-hmac = "0.12.1"
-reqwest = { version = "0.12.22", features = ["json"] }
+infra = { path = "../infra" }
 serde = { workspace = true }
-serde_json = "1.0.140"
-serde_urlencoded = "0.7.1"
-sha2 = "0.10.9"
-sqlx = { version = "0.8.6", features = [
-  "sqlite",
-  "runtime-tokio-rustls",
-  "migrate",
-] }
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
 tokio = { workspace = true }

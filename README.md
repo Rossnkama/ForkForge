@@ -46,7 +46,8 @@ forkforge/
 │   ├── api/         # Axum-based API server
 │   ├── cli/         # Command-line interface tool
 │   ├── common/      # Shared DTOs (Data Transfer Objects) and configuration
-│   └── domain/      # Core business logic and domain models
+│   ├── domain/      # Core business logic and domain models
+│   └── infra/       # Infrastructure implementations (DB, HTTP, external services)
 ├── migrations/      # Database migrations
 ├── docs/           # Project documentation
 ├── config.toml     # Configuration file
@@ -63,15 +64,24 @@ The project follows clean architecture principles with clear separation of conce
   - Models: User, Session, Snapshot, Subscription entities
   - Services: Authentication, Forking, Billing, Snapshots
   - Repository traits for data access abstraction
+  - Defines interfaces for external services (e.g., StripeClient, HttpClient)
+
+- **Infrastructure Layer** (`crates/infra/`): Implementation of domain interfaces
+  - Database repository implementations (SQLx-based)
+  - HTTP client adapters (GitHub, internal API)
+  - External service integrations (Stripe SDK)
+  - Provides `ServerInfra` façade for server-side services
+  - Provides `ClientInfra` façade for client-safe services
 
 - **API Layer** (`crates/api/`): HTTP server implementation
   - Axum-based REST API
-  - Adapters for domain services
-  - Database and external service integrations
+  - Uses `ServerInfra` for all infrastructure needs
+  - Handles HTTP routing and request/response transformation
 
 - **CLI Layer** (`crates/cli/`): Command-line interface
   - User interaction and display logic
-  - Uses domain services directly via dependency injection
+  - Uses `ClientInfra` for GitHub authentication
+  - Maintains its own HTTP client for API communication
 
 - **Common Layer** (`crates/common/`): Shared components
   - Data Transfer Objects (DTOs)
@@ -81,9 +91,11 @@ The project follows clean architecture principles with clear separation of conce
 
 - **Domain-Driven Design**: Business logic isolated in domain crate
 - **Dependency Inversion**: Domain defines interfaces, infrastructure implements them
+- **Security-First Design**: Separate `ServerInfra` and `ClientInfra` to prevent secret leakage
 - **Profile-based Configuration**: Environment-specific settings via `config.toml`
 - **GitHub OAuth Integration**: Device flow authentication
 - **Extensible Service Architecture**: Easy to add new auth providers and services
+- **Infrastructure Abstraction**: All I/O operations centralized in infra crate
 
 ## Getting Started
 

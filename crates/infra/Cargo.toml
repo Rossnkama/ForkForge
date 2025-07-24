@@ -1,18 +1,21 @@
 [package]
-name = "domain"
+name = "infra"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-anyhow = { workspace = true }
 async-trait = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
+common = { path = "../common" }
+domain = { path = "../domain" }
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_urlencoded = { workspace = true }
+serde_urlencoded = "0.7"
+sqlx = { version = "0.8", features = [
+  "sqlite",
+  "runtime-tokio-rustls",
+  "migrate",
+] }
 tokio = { workspace = true }
-tracing = "0.1"
 uuid = { version = "1.17", features = ["v4", "serde"] }
-
-# Domain specific dependencies that will be needed
-url = "2.5"

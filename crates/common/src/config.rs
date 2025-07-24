@@ -15,7 +15,6 @@ pub struct Config {
     pub api_base_url: String,
     #[serde(default = "default_database_url")]
     pub database_url: String,
-    #[serde(default)]
     pub stripe_webhook_secret: String,
     #[serde(default = "default_api_timeout_seconds")]
     pub api_timeout_seconds: u64,

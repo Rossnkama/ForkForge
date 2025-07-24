@@ -65,7 +65,7 @@ impl AuthError {
             AuthError::ServerConfigurationError { debug_info } => {
                 #[cfg(debug_assertions)]
                 {
-                    format!("Server configuration error. [DEBUG: {}]", debug_info)
+                    format!("Server configuration error. [DEBUG: {debug_info}]")
                 }
                 #[cfg(not(debug_assertions))]
                 {
@@ -76,7 +76,7 @@ impl AuthError {
             AuthError::InternalServerError { debug_info } => {
                 #[cfg(debug_assertions)]
                 {
-                    format!("Internal server error. [DEBUG: {}]", debug_info)
+                    format!("Internal server error. [DEBUG: {debug_info}]")
                 }
                 #[cfg(not(debug_assertions))]
                 {

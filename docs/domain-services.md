@@ -73,27 +73,55 @@ Handles user authentication across multiple providers with a focus on extensibil
 
 ### GitHub OAuth Implementation
 
+**Domain Layer (`domain/src/services/auth/github.rs`):**
+
 ```rust
-pub struct GitHubAuthService<C: HttpClient> {
+// Pure domain service that uses injected provider
+pub struct AuthService<P: DeviceFlowProvider> {
+    provider: P,
+}
+
+// Domain trait defining the contract
+pub trait DeviceFlowProvider: Send + Sync {
+    async fn request_device_code(&self) -> Result<DeviceCodeResponse, DomainError>;
+    async fn poll_authorization(&self, device_code: &str) -> Result<String, AuthError>;
+    async fn get_user(&self, access_token: &str) -> Result<GitHubUser, DomainError>;
+}
+```
+
+**Infrastructure Layer (`infra/src/github_device_flow.rs`):**
+
+```rust
+// Concrete GitHub implementation with all OAuth details
+pub struct GitHubDeviceFlowProvider {
     client_id: String,
-    http_client: C,
+    http_client: GitHubAdapter,
+}
+
+impl DeviceFlowProvider for GitHubDeviceFlowProvider {
+    // GitHub-specific URLs, polling logic, error mapping...
 }
 ```
 
 **Key Features:**
 
-- Device flow authentication
-- Token management
-- User profile retrieval
-- Error handling with retry logic
+- Clean separation between domain and infrastructure
+- Device flow authentication without domain knowing GitHub URLs
+- Token management abstracted from OAuth specifics
+- User profile retrieval through clean interfaces
+- Infrastructure handles all polling and retry logic
 
 **Usage Example:**
 
 ```rust
-let github_service = GitHubAuthService::new(client_id, http_client);
-let device_code = github_service.request_device_code().await?;
-let auth_response = github_service.poll_authorization(device_code).await?;
-let user = github_service.get_user(&auth_response.access_token).await?;
+// In API server setup
+let provider = GitHubDeviceFlowProvider::new(client_id, http_client);
+let auth_service = AuthService::new(provider);
+
+// Usage remains clean
+let device_code = auth_service.request_device_code().await?;
+let access_token = auth_service.wait_for_authorization(&device_code.device_code).await?;
+let user = auth_service.get_user(&access_token).await?;
 ```
 
 ### Adding New Auth Providers
@@ -274,18 +302,24 @@ mod tests {
     use mockall::mock;
 
     mock! {
-        HttpClient {}
+        DeviceFlowProvider {}
 
         #[async_trait]
-        impl HttpClient for HttpClient {
-            async fn post_form(&self, url: &str, body: &str) -> Result<String, DomainError>;
-            async fn get_with_auth(&self, url: &str, token: &str) -> Result<String, DomainError>;
+        impl DeviceFlowProvider for DeviceFlowProvider {
+            async fn request_device_code(&self) -> Result<DeviceCodeResponse, DomainError>;
+            async fn poll_authorization(&self, device_code: &str) -> Result<String, AuthError>;
+            async fn get_user(&self, access_token: &str) -> Result<GitHubUser, DomainError>;
         }
     }
 
     #[tokio::test]
-    async fn test_github_auth() {
-        let mut mock_client = MockHttpClient::new();
+    async fn test_auth_service() {
+        let mut mock_provider = MockDeviceFlowProvider::new();
+        mock_provider
+            .expect_request_device_code()
+            .returning(|| Ok(DeviceCodeResponse { /* ... */ }));
+        
+        let auth_service = AuthService::new(mock_provider);
         // Test implementation
     }
 }

@@ -1,7 +1,7 @@
 use common::{
     CheckUserAuthorisedResponse, DeviceCodeResponse, GitHubUser, PollAuthorizationRequest,
 };
-use domain::services::auth::AuthError;
+use domain::services::auth::types::AuthError;
 
 use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
 
@@ -38,19 +38,19 @@ pub(crate) async fn check_user_authorised(
     State(state): State<AppState>,
     Json(poll_request): Json<PollAuthorizationRequest>,
 ) -> Result<Json<CheckUserAuthorisedResponse>, ApiError> {
-    let domain_response = state
+    let access_token = state
         .github_auth_service
-        .poll_authorization(poll_request.device_code)
+        .wait_for_authorization(&poll_request.device_code)
         .await?;
 
-    // Convert domain response to common response type
+    // Create response with the access token
     let response = CheckUserAuthorisedResponse {
-        access_token: domain_response.access_token,
-        _token_type: domain_response.token_type,
-        _scope: domain_response.scope,
+        access_token,
+        _token_type: "bearer".to_string(),
+        _scope: "user".to_string(),
     };
 
-    println!("Authentication successful, Token: {:?}", response);
+    println!("Authentication successful, Token: {response:?}");
     Ok(Json(response))
 }
 

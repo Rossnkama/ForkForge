@@ -10,17 +10,18 @@ name = "cli"
 path = "src/client.rs"
 
 [dependencies]
-async-trait = "0.1"
-clap = { version = "4.5.40", features = ["derive"] }
+async-trait = { workspace = true }
+clap = { version = "4.5", features = ["derive"] }
 common = { path = "../common" }
 domain = { path = "../domain" }
-reqwest = { version = "0.12.22", features = ["json"] }
+infra = { path = "../infra" }
+reqwest = { workspace = true }
 serde = { workspace = true }
-serde_json = "1.0.140"
-serde_urlencoded = "0.7"
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
 urlencoding = "2.1"
 tokio = { workspace = true }
-open = "5.3.2"
-qr2term = "0.3.3"
-colored = "3.0.0"
-arboard = "3.6.0"
+open = "5.3"
+qr2term = "0.3"
+colored = "3.0"
+arboard = "3.6"

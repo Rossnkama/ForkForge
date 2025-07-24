@@ -1,42 +1,55 @@
+//! # ForkForge API Server
+//!
+//! This is the main HTTP API server for ForkForge/Chainbox, built with Axum.
+//! It provides REST endpoints for authentication, session management, and billing.
+//!
+//! ## Architecture
+//!
+//! The server uses the `ServerInfra` façade from the infra crate to access all
+//! infrastructure services (database, external APIs, etc.) while keeping the
+//! HTTP layer focused on request/response handling.
+//!
+//! ## Endpoints
+//!
+//! - Authentication: GitHub OAuth device flow
+//! - Sessions: Fork session management
+//! - Snapshots: Time-travel snapshot creation
+//! - Billing: Stripe webhook handling
+
 mod github;
-mod http_client;
 
 use axum::{
     Json, Router,
     extract::Path,
     routing::{get, post},
 };
-use reqwest::Client;
 use serde::Serialize;
 use std::sync::Arc;
 
 use common::Config;
-use domain::services::auth::github::GitHubAuthService;
+use domain::services::auth::github::AuthService;
 use github::github_create_user_device_session;
+use infra::{GitHubDeviceFlowProvider, ServerInfra};
 
 use crate::github::{check_user_authorised, github_login};
-use crate::http_client::ReqwestAdapter;
 
+/// Application state shared across all request handlers
+///
+/// Contains configuration and service instances needed by handlers.
+/// Cloned for each request due to Axum's state management.
 // TODO: Add some sort of rate limiting to the requests to github.com
 #[derive(Clone)]
 pub(crate) struct AppState {
     config: Config,
-    http_client: Client,
-    github_auth_service: Arc<GitHubAuthService<ReqwestAdapter>>,
-    // Future fields can be added here:
-    // db_pool: sqlx::PgPool,
-    // redis_client: redis::Client,
-    // etc.
+    #[allow(dead_code)]
+    infra: Arc<ServerInfra>,
+    github_auth_service: Arc<AuthService<GitHubDeviceFlowProvider>>,
 }
 
 #[allow(dead_code)]
 impl AppState {
     fn config(&self) -> &Config {
         &self.config
-    }
-
-    fn http_client(&self) -> &Client {
-        &self.http_client
     }
 }
 
@@ -71,36 +84,43 @@ async fn stripe_webhook() -> Json<ApiResponse<&'static str>> {
     })
 }
 
+/// Main entry point for the API server
+///
+/// Initializes all infrastructure services via `ServerInfra`, sets up
+/// domain services, configures routes, and starts the HTTP server.
+///
+/// ## Initialization Order
+///
+/// 1. Load configuration from config.toml and environment
+/// 2. Initialize infrastructure (database, HTTP clients, Stripe)
+/// 3. Create domain services with dependency injection
+/// 4. Configure HTTP routes
+/// 5. Start server on configured host:port
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
     // Load configuration
     let config = Config::load().expect("Failed to load configuration");
 
-    // Create a persistent HTTP client with connection pooling
-    //
-    // - pool_max_idle_per_host: Max idle connections per unique host (e.g., github.com:443)
-    //   Keeps up to 10 TCP connections open to each host, avoiding TLS handshakes on reuse
-    // - pool_idle_timeout: How long to keep idle connections alive (90s)
-    // - timeout: Max time for a complete request/response cycle (30s)
-    let http_client = Client::builder()
-        .pool_idle_timeout(std::time::Duration::from_secs(90))
-        .pool_max_idle_per_host(10)
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .expect("Failed to build HTTP client");
+    // Initialize infrastructure
+    let infra = Arc::new(
+        ServerInfra::new(&config)
+            .await
+            .expect("Failed to initialize infrastructure"),
+    );
 
-    let reqwest_adapter = ReqwestAdapter::new(http_client.clone());
-    let github_auth_service = Arc::new(GitHubAuthService::new(
+    // Create GitHub device flow provider and auth service
+    let device_flow_provider = GitHubDeviceFlowProvider::new(
         config
             .github_client_id
             .clone()
             .expect("GitHub client ID not configured"),
-        reqwest_adapter,
-    ));
+        infra.github.clone(),
+    );
+    let github_auth_service = Arc::new(AuthService::new(device_flow_provider));
 
     let state = AppState {
         config: config.clone(),
-        http_client,
+        infra,
         github_auth_service,
     };
 

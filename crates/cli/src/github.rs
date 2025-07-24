@@ -16,7 +16,7 @@ fn display_and_copy_code(user_code: &str) {
     println!();
     println!(
         "  {}",
-        format!(" Code: {} ", user_code)
+        format!(" Code: {user_code} ")
             .bright_white()
             .bold()
             .on_black()
@@ -26,7 +26,7 @@ fn display_and_copy_code(user_code: &str) {
     match Clipboard::new() {
         Ok(mut clipboard) => {
             if let Err(e) = clipboard.set_text(user_code) {
-                eprintln!("Failed to copy code to clipboard: {}", e);
+                eprintln!("Failed to copy code to clipboard: {e}");
             } else {
                 println!(
                     "  {} {}",
@@ -35,7 +35,7 @@ fn display_and_copy_code(user_code: &str) {
                 );
             }
         }
-        Err(e) => eprintln!("Failed to access clipboard: {}", e),
+        Err(e) => eprintln!("Failed to access clipboard: {e}"),
     }
 
     println!();
@@ -52,7 +52,7 @@ fn display_verification_url(verification_uri: &str) {
     // Display QR code for the verification URL
     println!("\nScan this QR code with your phone:");
     if let Err(e) = qr2term::print_qr(verification_uri) {
-        eprintln!("Failed to generate QR code: {}", e);
+        eprintln!("Failed to generate QR code: {e}");
     }
 }
 
@@ -131,7 +131,7 @@ pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
 
     // Step 4: Prompt for browser action
     if let Err(e) = prompt_browser_action(&response.verification_uri) {
-        eprintln!("Error handling browser prompt: {}", e);
+        eprintln!("Error handling browser prompt: {e}");
     }
 }
 

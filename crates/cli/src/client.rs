@@ -1,3 +1,19 @@
+//! # ForkForge CLI Client
+//!
+//! Command-line interface for ForkForge/Chainbox, providing local development
+//! tools for Solana mainnet forking.
+//!
+//! ## Architecture
+//!
+//! The CLI communicates with the ForkForge API server for authentication and
+//! session management. It uses the infra crate's `GitHubHttpClient` for GitHub
+//! OAuth operations but maintains its own HTTP client for API communication.
+//!
+//! ## Commands
+//!
+//! - `login`: Authenticate via GitHub OAuth device flow
+//! - `up`: Launch a forked Solana validator (coming soon)
+
 use clap::{Parser, Subcommand};
 use common::{CheckUserAuthorisedResponse, DeviceCodeResponse, PollAuthorizationRequest};
 use domain::services::auth::internal_api::InternalApiService;
@@ -8,20 +24,23 @@ mod github;
 mod infrastructure;
 
 use client_config::ClientConfig;
-use infrastructure::http_client::ReqwestAdapter;
+use infrastructure::http_client::GitHubHttpClient;
 
-/// Simple program to greet a person
+/// ForkForge CLI - Fast Solana mainnet forking for local development
 #[derive(Parser)]
 #[command(name="forkforge", version, about, long_about = None)]
 struct Cli {
-    /// Command you want forkforge to execute
+    /// Command to execute
     #[command(subcommand)]
     command: Option<Commands>,
 }
 
+/// Available CLI commands
 #[derive(Subcommand)]
 enum Commands {
+    /// Authenticate with GitHub to access ForkForge services
     Login,
+    /// Launch a forked Solana validator with configured accounts
     Up,
 }
 
@@ -41,20 +60,20 @@ async fn get_device_code(
         .json(&serde_json::json!({}))
         .send()
         .await
-        .map_err(|e| format!("Failed to get device code from {}: {}", device_code_url, e))?;
+        .map_err(|e| format!("Failed to get device code from {device_code_url}: {e}"))?;
 
     let status = device_response.status();
     let body = device_response
         .text()
         .await
-        .map_err(|e| format!("Failed to read device code response: {}", e))?;
+        .map_err(|e| format!("Failed to read device code response: {e}"))?;
 
     if !status.is_success() {
-        return Err(format!("Device code API error ({}): {}", status, body).into());
+        return Err(format!("Device code API error ({status}): {body}").into());
     }
 
     let device_auth_data: DeviceCodeResponse = serde_json::from_str(&body)
-        .map_err(|e| format!("Failed to parse device code JSON: {}\nBody: {}", e, body))?;
+        .map_err(|e| format!("Failed to parse device code JSON: {e}\nBody: {body}"))?;
 
     Ok(device_auth_data)
 }
@@ -71,28 +90,37 @@ async fn poll_for_authorization(
         .json(&PollAuthorizationRequest { device_code })
         .send()
         .await
-        .map_err(|e| format!("Failed to poll authorization at {}: {}", poll_url, e))?;
+        .map_err(|e| format!("Failed to poll authorization at {poll_url}: {e}"))?;
 
     let status = poll_response.status();
     let body = poll_response
         .text()
         .await
-        .map_err(|e| format!("Failed to read response body: {}", e))?;
+        .map_err(|e| format!("Failed to read response body: {e}"))?;
 
     if !status.is_success() {
-        return Err(format!("API error ({}): {}", status, body).into());
+        return Err(format!("API error ({status}): {body}").into());
     }
 
     let auth_response: CheckUserAuthorisedResponse = serde_json::from_str(&body)
-        .map_err(|e| format!("Failed to parse auth response JSON: {}\nBody: {}", e, body))?;
+        .map_err(|e| format!("Failed to parse auth response JSON: {e}\nBody: {body}"))?;
 
     Ok(auth_response)
 }
 
 /// Handle the GitHub OAuth login flow
+///
+/// Implements the complete GitHub device flow authentication:
+/// 1. Request device code from API server
+/// 2. Display verification URL and code to user
+/// 3. Poll for authorization completion
+/// 4. Retrieve user information
+///
+/// Uses the infra crate's GitHubHttpClient for HTTP operations,
+/// demonstrating proper use of dependency injection.
 async fn handle_login(config: ClientConfig) -> Result<(), Box<dyn std::error::Error>> {
     // Create domain services with dependency injection
-    let http_adapter = ReqwestAdapter::new(config.http_client.clone());
+    let http_adapter = GitHubHttpClient::with_default_client();
     let api_service = InternalApiService::new(config.api_base_url.clone(), http_adapter);
 
     // Step 1: Get device and user verification codes
@@ -120,6 +148,11 @@ async fn handle_login(config: ClientConfig) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+/// CLI entry point
+///
+/// Parses command-line arguments and routes to appropriate command handlers.
+/// Loads configuration from environment variables (no config file access for
+/// security reasons - CLI doesn't have access to server secrets).
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli: Cli = Cli::parse();

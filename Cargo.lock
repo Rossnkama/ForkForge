@@ -102,13 +102,10 @@ dependencies = [
  "axum",
  "common",
  "domain",
- "hmac",
- "reqwest",
+ "infra",
  "serde",
  "serde_json",
  "serde_urlencoded",
- "sha2",
- "sqlx",
  "tokio",
 ]
 
@@ -400,6 +397,7 @@ dependencies = [
  "colored",
  "common",
  "domain",
+ "infra",
  "open",
  "qr2term",
  "reqwest",
@@ -604,7 +602,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "reqwest",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -1244,6 +1241,23 @@ checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown",
+]
+
+[[package]]
+name = "infra"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "common",
+ "domain",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sqlx",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
