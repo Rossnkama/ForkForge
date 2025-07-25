@@ -26,7 +26,7 @@ pub mod stripe;
 pub use db::{DbRepo, MIGRATOR};
 pub use github::GitHubHttpClient;
 pub use github_device_flow::GitHubDeviceFlowProvider;
-pub use stripe::{StripeSdk, StripeWebhookHandler};
+pub use stripe::StripeSdk;
 
 use domain::errors::DomainError;
 

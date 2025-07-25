@@ -89,12 +89,14 @@ impl UserRepository for DbRepo {
         todo!("Implement find_by_id")
     }
 
-    async fn find_by_github_id(&self, _github_id: u64) -> Result<Option<User>, DomainError> {
-        todo!("Implement find_by_github_id")
-    }
-
-    async fn find_by_stripe_id(&self, _stripe_id: &str) -> Result<Option<User>, DomainError> {
-        todo!("Implement find_by_stripe_id")
+    async fn find_by_external_id(
+        &self,
+        provider: &str,
+        external_id: &str,
+    ) -> Result<Option<User>, DomainError> {
+        // In production, would query database based on provider and external_id
+        let _ = (provider, external_id);
+        todo!("Implement find_by_external_id")
     }
 
     async fn create(&self, _user: &User) -> Result<User, DomainError> {

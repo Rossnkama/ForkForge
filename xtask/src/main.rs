@@ -49,11 +49,11 @@ TASKS:
 
 fn migrate() -> Result<()> {
     println!("Running database migrations...");
-    
+
     let status = Command::new("cargo")
         .args(&["run", "--bin", "migrate"])
         .status()?;
-    
+
     check_status(status)?;
     println!("✅ Migrations completed successfully");
     Ok(())
@@ -61,13 +61,13 @@ fn migrate() -> Result<()> {
 
 fn dev() -> Result<()> {
     println!("Starting API server in development mode...");
-    
+
     let status = Command::new("cargo")
         .args(&["run", "--bin", "api"])
         .env("RUST_LOG", "debug")
         .env("FORKFORGE_PROFILE", "default")
         .status()?;
-    
+
     check_status(status)
 }
 
@@ -77,21 +77,25 @@ fn watch() -> Result<()> {
         eprintln!("  cargo install cargo-watch");
         std::process::exit(1);
     }
-    
+
     println!("Starting API in watch mode...");
-    
+
     let status = Command::new("cargo")
         .args(&[
             "watch",
-            "-x", "run --bin api",
-            "-w", "crates",
-            "-w", "Cargo.toml",
-            "-w", "config.toml",
+            "-x",
+            "run --bin api",
+            "-w",
+            "crates",
+            "-w",
+            "Cargo.toml",
+            "-w",
+            "config.toml",
         ])
         .env("RUST_LOG", "debug")
         .env("FORKFORGE_PROFILE", "default")
         .status()?;
-    
+
     check_status(status)
 }
 

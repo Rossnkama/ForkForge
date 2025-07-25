@@ -36,6 +36,23 @@ pub struct CheckAuthorisationResponse {
     pub scope: String,
 }
 
+/// Domain-agnostic authenticated user
+///
+/// This represents a user authenticated through any provider (GitHub, Google, etc).
+/// Provider-specific details are handled by infrastructure.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthenticatedUser {
+    /// Unique identifier from the auth provider
+    pub provider_id: String,
+    /// Username/handle from the provider
+    pub username: String,
+    /// Email if provided by the auth provider
+    pub email: Option<String>,
+    /// Display name if provided
+    pub display_name: Option<String>,
+}
+
+/// Legacy type for compatibility - to be moved to infrastructure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitHubUser {
     pub id: u64,

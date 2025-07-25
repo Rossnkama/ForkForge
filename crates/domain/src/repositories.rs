@@ -23,8 +23,18 @@ use uuid::Uuid;
 #[async_trait]
 pub trait UserRepository: Send + Sync {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError>;
-    async fn find_by_github_id(&self, github_id: u64) -> Result<Option<User>, DomainError>;
-    async fn find_by_stripe_id(&self, stripe_id: &str) -> Result<Option<User>, DomainError>;
+
+    /// Find user by external provider ID
+    ///
+    /// Examples:
+    /// - find_by_external_id("github", "12345")
+    /// - find_by_external_id("stripe", "cus_abc123")
+    async fn find_by_external_id(
+        &self,
+        provider: &str,
+        external_id: &str,
+    ) -> Result<Option<User>, DomainError>;
+
     async fn create(&self, user: &User) -> Result<User, DomainError>;
     async fn update(&self, user: &User) -> Result<User, DomainError>;
 }

@@ -1,4 +1,6 @@
-pub mod stripe_client;
-pub mod webhooks;
+pub mod payment_processor;
 
-pub use stripe_client::StripeClient;
+pub use payment_processor::{
+    CustomerId, PaymentMethodId, PaymentProcessor, PaymentWebhookHandler, SubscriptionId,
+    SubscriptionRepository, SubscriptionService, SubscriptionServiceImpl,
+};
