@@ -13,19 +13,19 @@
 //! ## Modules
 //!
 //! - `db`: SQLite/SQLx database implementations of domain repository traits
-//! - `github`: HTTP client adapter for GitHub OAuth and API operations
+//! - `http`: Generic HTTP client adapter for OAuth and API operations
 //! - `stripe`: Stripe SDK integration for billing operations
 //! - `helius`: Placeholder for future Helius RPC integration
 
 pub mod db;
 pub mod github;
-pub mod github_device_flow;
 pub mod helius;
+pub mod http;
 pub mod stripe;
 
 pub use db::{DbRepo, MIGRATOR};
-pub use github::GitHubHttpClient;
-pub use github_device_flow::GitHubDeviceFlowProvider;
+pub use github::GitHubDeviceFlowProvider;
+pub use http::HttpClient;
 pub use stripe::StripeSdk;
 
 use domain::errors::DomainError;
@@ -54,8 +54,8 @@ use domain::errors::DomainError;
 pub struct ServerInfra {
     /// Database repository providing all data access operations
     pub db: DbRepo,
-    /// GitHub API adapter for OAuth and user operations
-    pub github: GitHubHttpClient,
+    /// HTTP client adapter for OAuth and API operations
+    pub http: HttpClient,
     /// Stripe SDK for billing and payment processing (if configured)
     pub stripe: Option<StripeSdk>,
 }
@@ -87,8 +87,8 @@ impl ServerInfra {
                 DomainError::Internal(format!("HTTP client initialization failed: {e}"))
             })?;
 
-        // Initialize GitHub adapter
-        let github = GitHubHttpClient::new(http_client.clone());
+        // Initialize HTTP client adapter
+        let http = HttpClient::new(http_client.clone());
 
         // Initialize Stripe SDK only if configured
         // TODO: This is kind hacky, we should have a better way to handle this
@@ -104,7 +104,7 @@ impl ServerInfra {
             None
         };
 
-        Ok(Self { db, github, stripe })
+        Ok(Self { db, http, stripe })
     }
 }
 
@@ -130,8 +130,8 @@ impl ServerInfra {
 /// let user_info = infra.github.get_with_auth(url, &user_token).await?;
 /// ```
 pub struct ClientInfra {
-    /// GitHub API adapter for OAuth operations using user-provided tokens
-    pub github: GitHubHttpClient,
+    /// HTTP client adapter for OAuth operations using user-provided tokens
+    pub http: HttpClient,
 }
 
 impl ClientInfra {
@@ -153,9 +153,9 @@ impl ClientInfra {
                 DomainError::Internal(format!("HTTP client initialization failed: {e}"))
             })?;
 
-        // Initialize GitHub adapter (uses user's OAuth tokens, not server secrets)
-        let github = GitHubHttpClient::new(http_client);
+        // Initialize HTTP client adapter (uses user's OAuth tokens, not server secrets)
+        let http = HttpClient::new(http_client);
 
-        Ok(Self { github })
+        Ok(Self { http })
     }
 }

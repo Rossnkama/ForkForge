@@ -12,8 +12,8 @@
 
 use async_trait::async_trait;
 use domain::errors::DomainError;
-use domain::models::{AuthCredentials, ForkSession, Snapshot, User};
-use domain::repositories::{AuthRepository, SessionRepository, SnapshotRepository, UserRepository};
+use domain::models::{AuthToken, User};
+use domain::repositories::{AuthRepository, UserRepository};
 use sqlx::migrate::Migrator;
 use sqlx::sqlite::SqliteConnectOptions;
 pub use sqlx::sqlite::SqlitePool;
@@ -89,14 +89,19 @@ impl UserRepository for DbRepo {
         todo!("Implement find_by_id")
     }
 
-    async fn find_by_external_id(
+    async fn find_by_email(&self, _email: &str) -> Result<Option<User>, DomainError> {
+        todo!("Implement find_by_email")
+    }
+
+    async fn find_by_github_id(&self, _github_id: i64) -> Result<Option<User>, DomainError> {
+        todo!("Implement find_by_github_id")
+    }
+
+    async fn find_by_stripe_customer_id(
         &self,
-        provider: &str,
-        external_id: &str,
+        _stripe_customer_id: &str,
     ) -> Result<Option<User>, DomainError> {
-        // In production, would query database based on provider and external_id
-        let _ = (provider, external_id);
-        todo!("Implement find_by_external_id")
+        todo!("Implement find_by_stripe_customer_id")
     }
 
     async fn create(&self, _user: &User) -> Result<User, DomainError> {
@@ -106,6 +111,10 @@ impl UserRepository for DbRepo {
     async fn update(&self, _user: &User) -> Result<User, DomainError> {
         todo!("Implement update user")
     }
+
+    async fn delete(&self, _id: Uuid) -> Result<(), DomainError> {
+        todo!("Implement delete user")
+    }
 }
 
 #[async_trait]
@@ -113,12 +122,16 @@ impl AuthRepository for DbRepo {
     async fn find_by_token_hash(
         &self,
         _token_hash: &str,
-    ) -> Result<Option<AuthCredentials>, DomainError> {
+    ) -> Result<Option<AuthToken>, DomainError> {
         todo!("Implement find_by_token_hash")
     }
 
-    async fn create(&self, _credentials: &AuthCredentials) -> Result<AuthCredentials, DomainError> {
-        todo!("Implement create auth credentials")
+    async fn find_by_user_id(&self, _user_id: Uuid) -> Result<Vec<AuthToken>, DomainError> {
+        todo!("Implement find_by_user_id")
+    }
+
+    async fn create(&self, _token: &AuthToken) -> Result<AuthToken, DomainError> {
+        todo!("Implement create auth token")
     }
 
     async fn update_last_used(&self, _id: Uuid) -> Result<(), DomainError> {
@@ -126,53 +139,11 @@ impl AuthRepository for DbRepo {
     }
 
     async fn delete(&self, _id: Uuid) -> Result<(), DomainError> {
-        todo!("Implement delete auth credentials")
-    }
-}
-
-#[async_trait]
-impl SessionRepository for DbRepo {
-    async fn find_by_id(&self, _id: Uuid) -> Result<Option<ForkSession>, DomainError> {
-        todo!("Implement find_by_id")
+        todo!("Implement delete auth token")
     }
 
-    async fn find_by_user_id(&self, _user_id: Uuid) -> Result<Vec<ForkSession>, DomainError> {
-        todo!("Implement find_by_user_id")
-    }
-
-    async fn create(&self, _session: &ForkSession) -> Result<ForkSession, DomainError> {
-        todo!("Implement create session")
-    }
-
-    async fn update(&self, _session: &ForkSession) -> Result<ForkSession, DomainError> {
-        todo!("Implement update session")
-    }
-
-    async fn delete(&self, _id: Uuid) -> Result<(), DomainError> {
-        todo!("Implement delete session")
-    }
-}
-
-#[async_trait]
-impl SnapshotRepository for DbRepo {
-    async fn find_by_id(&self, _id: Uuid) -> Result<Option<Snapshot>, DomainError> {
-        todo!("Implement find_by_id")
-    }
-
-    async fn find_by_session_id(&self, _session_id: Uuid) -> Result<Vec<Snapshot>, DomainError> {
-        todo!("Implement find_by_session_id")
-    }
-
-    async fn find_by_user_id(&self, _user_id: Uuid) -> Result<Vec<Snapshot>, DomainError> {
-        todo!("Implement find_by_user_id")
-    }
-
-    async fn create(&self, _snapshot: &Snapshot) -> Result<Snapshot, DomainError> {
-        todo!("Implement create snapshot")
-    }
-
-    async fn delete(&self, _id: Uuid) -> Result<(), DomainError> {
-        todo!("Implement delete snapshot")
+    async fn delete_expired(&self) -> Result<u64, DomainError> {
+        todo!("Implement delete_expired")
     }
 }
 

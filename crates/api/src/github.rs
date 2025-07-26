@@ -116,6 +116,7 @@ pub async fn github_login(
 ) -> Result<Json<GitHubUser>, StatusCode> {
     let domain_user = state
         .github_auth_service
+        // TODO: Remove this get_user call for `authorize()`
         .get_user(&access_token)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

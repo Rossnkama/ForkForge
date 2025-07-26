@@ -1,4 +1,22 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+use super::TokenService;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiToken {
+    pub token: String,
+    pub expiry: Option<DateTime<Utc>>,
+}
+
+impl ApiToken {
+    pub fn new_no_expiry() -> Self {
+        ApiToken {
+            token: TokenService::generate_api_token(),
+            expiry: None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthToken {
@@ -40,6 +58,7 @@ pub struct CheckAuthorisationResponse {
 ///
 /// This represents a user authenticated through any provider (GitHub, Google, etc).
 /// Provider-specific details are handled by infrastructure.
+// TODO: Make this use an enum later...
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticatedUser {
     /// Unique identifier from the auth provider

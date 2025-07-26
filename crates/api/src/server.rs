@@ -27,7 +27,10 @@ use serde::Serialize;
 use std::sync::Arc;
 
 use common::Config;
-use domain::services::auth::github::AuthService;
+use domain::{
+    repositories::{AuthRepository, UserRepository},
+    services::auth::github::AuthService,
+};
 use github::github_create_user_device_session;
 use infra::{GitHubDeviceFlowProvider, ServerInfra};
 
@@ -43,7 +46,7 @@ pub(crate) struct AppState {
     config: Config,
     #[allow(dead_code)]
     infra: Arc<ServerInfra>,
-    github_auth_service: Arc<AuthService<GitHubDeviceFlowProvider>>,
+    github_auth_service: Arc<AuthService<GitHubDeviceFlowProvider, AuthRepository>>,
 }
 
 #[allow(dead_code)]
@@ -114,9 +117,13 @@ async fn main() {
             .github_client_id
             .clone()
             .expect("GitHub client ID not configured"),
-        infra.github.clone(),
+        infra.http.clone(),
     );
-    let github_auth_service = Arc::new(AuthService::new(device_flow_provider));
+
+    let github_auth_service = Arc::new(AuthService::new(
+        device_flow_provider,
+        todo!("Add the reposity instance"),
+    ));
 
     let state = AppState {
         config: config.clone(),

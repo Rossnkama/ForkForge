@@ -6,8 +6,8 @@
 //! ## Architecture
 //!
 //! The CLI communicates with the ForkForge API server for authentication and
-//! session management. It uses the infra crate's `GitHubHttpClient` for GitHub
-//! OAuth operations but maintains its own HTTP client for API communication.
+//! session management. It uses the infra crate's `HttpClient` for OAuth
+//! operations and API communication.
 //!
 //! ## Commands
 //!
@@ -16,15 +16,15 @@
 
 use clap::{Parser, Subcommand};
 use common::{CheckUserAuthorisedResponse, DeviceCodeResponse, PollAuthorizationRequest};
-use domain::services::auth::internal_api::InternalApiService;
 use domain::services::auth::types::GitHubUser;
+use domain::services::http_service::HttpService;
 
 mod client_config;
 mod github;
 mod infrastructure;
 
 use client_config::ClientConfig;
-use infrastructure::http_client::GitHubHttpClient;
+use infrastructure::http_client::HttpClient;
 
 /// ForkForge CLI - Fast Solana mainnet forking for local development
 #[derive(Parser)]
@@ -116,12 +116,12 @@ async fn poll_for_authorization(
 /// 3. Poll for authorization completion
 /// 4. Retrieve user information
 ///
-/// Uses the infra crate's GitHubHttpClient for HTTP operations,
+/// Uses the infra crate's HttpClient for HTTP operations,
 /// demonstrating proper use of dependency injection.
 async fn handle_login(config: ClientConfig) -> Result<(), Box<dyn std::error::Error>> {
     // Create domain services with dependency injection
-    let http_adapter = GitHubHttpClient::with_default_client();
-    let api_service = InternalApiService::new(config.api_base_url.clone(), http_adapter);
+    let http_adapter = HttpClient::with_default_client();
+    let api_service = HttpService::new(config.api_base_url.clone(), http_adapter);
 
     // Step 1: Get device and user verification codes
     let device_auth_data = get_device_code(&config).await?;

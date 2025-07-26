@@ -1,8 +1,8 @@
 use arboard::Clipboard;
 use colored::*;
 use common::DeviceCodeResponse;
-use domain::services::auth::internal_api::InternalApiService;
 use domain::services::auth::types::GitHubUser;
+use domain::services::http_service::HttpService;
 use std::io::{self, Write};
 
 /// Display the authentication header and separator
@@ -141,10 +141,10 @@ pub async fn prompt_user_to_verify(response: &DeviceCodeResponse) {
 /// following the domain-driven design pattern.
 pub async fn get_user_info<C>(
     access_token: &str,
-    api_service: &InternalApiService<C>,
+    api_service: &HttpService<C>,
 ) -> Result<GitHubUser, Box<dyn std::error::Error>>
 where
-    C: domain::services::auth::internal_api::HttpClient,
+    C: domain::services::http::HttpClient,
 {
     api_service
         .get_github_user(access_token)

@@ -1,7 +1,5 @@
-pub mod session;
-pub mod snapshot;
+pub mod auth;
 pub mod user;
 
-pub use session::*;
-pub use snapshot::*;
+pub use auth::*;
 pub use user::*;
